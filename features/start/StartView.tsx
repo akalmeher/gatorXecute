@@ -6,18 +6,19 @@ import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { useReplan } from "@/features/plan/useReplan";
-import { PlanFocus, quietButton, secondaryButton, sectionLabel } from "@/features/plan/PlanFocus";
+import { PlanFocus, secondaryButton } from "@/features/plan/PlanFocus";
 import { findPlanProblems, needsAttention } from "@/features/plan/plan-health";
 import { formatDay } from "@/features/plan/plan-display";
-import { addDays, toIsoDay, todayIsoDay } from "@/features/plan/plan-validation";
+import { toIsoDay, todayIsoDay } from "@/features/plan/plan-validation";
 import { CoordinateBox } from "./CoordinateBox";
-import { ArrowRightIcon } from "./StartIcons";
+import { ArrowRightIcon, CalendarClockIcon, ClipboardListIcon } from "./StartIcons";
 
 /**
  * Feature Owner: Divij Anand
- * Home as a cockpit. Left: what needs me (next step, attention, my stuff,
- * + Coordinate). Right: when (the next 7 days, coming up) and the team.
- * Built to be understood while barely reading.
+ * Cockpit Landing: Turn-key, intuitive, no 20-item cognitive overload.
+ * 1. Calm greeting & identity badge
+ * 2. Two Hero Doors: Quick Meet (/meet) & Current Project (/plan)
+ * 3. Active Stuffs: Next step with Done/Need help, attention items, upcoming milestones, and + Coordinate bar.
  */
 
 function greeting(now = new Date()) {
@@ -31,7 +32,7 @@ export function StartView() {
   const replan = useReplan(project);
   const today = todayIsoDay();
   const deadline = toIsoDay(project.deadline);
-  const shortName = project.course.split(":")[0] || project.name;
+  const courseOrName = project.course ? project.course.split(":")[0].trim() : project.name;
 
   const open = useMemo(() => project.tasks.filter((t) => t.status !== "done"), [project.tasks]);
   const mineOpen = member ? open.filter((t) => t.ownerId === member.id) : [];
@@ -43,181 +44,227 @@ export function StartView() {
       .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
       .slice(0, 4)
       .map((t) => ({ day: t.dueDate as string, label: t.title, mine: t.ownerId === member?.id, final: false }));
-    if (deadline) items.push({ day: deadline, label: `${shortName} due`, mine: false, final: true });
+    if (deadline) items.push({ day: deadline, label: `${courseOrName} due`, mine: false, final: true });
     return items.sort((a, b) => a.day.localeCompare(b.day));
-  }, [open, today, deadline, member, shortName]);
+  }, [open, today, deadline, member, courseOrName]);
 
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const day = addDays(today, i);
-    const [y, m, d] = day.split("-").map(Number);
-    return {
-      day,
-      weekday: new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "narrow" }),
-      date: d,
-      due: comingUp.filter((c) => c.day === day).length,
-    };
-  });
   const nextMeeting = project.meetings[0];
   const firstName = member?.name.split(" ")[0];
 
   return (
-    <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
-      {/* LEFT: what needs me? */}
-      <div className="min-w-0 space-y-10">
-        <header className="space-y-2">
-          <h1 className="font-heading text-3xl sm:text-[40px] sm:leading-tight font-bold tracking-tight text-[#F5F2FA]">
+    <div className="mx-auto max-w-4xl space-y-10 sm:space-y-12">
+      {/* 1. Header: Greeting & Profile Role */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-[#F5F2FA]">
             {firstName ? `${greeting()}, ${firstName}.` : `${greeting()}.`}
           </h1>
-          {member ? (
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Link
-                href="/profile"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#B8A6FF] hover:underline"
-              >
-                <span>🎓</span>
-                <span>Profile &amp; Task Roles ({member.role || "Set role"})</span>
-              </Link>
-              <span className="text-[#2A2E39]">·</span>
-              <button type="button" onClick={() => setCurrentMember(null)} className={`${quietButton} -ml-2 text-xs`}>
-                Not {firstName}?
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-sm text-[#AAA5B4]">Who are you?</span>
-              {project.members.map((m) => (
-                <button key={m.id} type="button" onClick={() => setCurrentMember(m.id)} className={`${secondaryButton} px-3 py-1.5`}>
-                  {m.name.split(" ")[0]}
-                </button>
-              ))}
-              <Link href="/profile" className="ml-1 inline-flex items-center gap-1 text-xs text-[#B8A6FF] hover:underline">
-                + Create profile
-              </Link>
-            </div>
-          )}
-        </header>
+          <p className="mt-1 text-sm text-[#AAA5B4]">
+            Your group coordination cockpit. Clear next steps, zero friction.
+          </p>
+        </div>
 
-        {project.tasks.length > 0 ? (
-          <PlanFocus project={project} me={member} replan={replan} replaceTasks={replaceTasks} updateTaskStatus={updateTaskStatus} />
+        {/* Identity & Profile Badge */}
+        {member ? (
+          <div className="flex items-center gap-2.5 self-start rounded-full border border-[#2A2E39] bg-[#171A23] px-3.5 py-1.5 text-xs shadow-sm sm:self-auto">
+            <Link
+              href="/profile"
+              className="flex items-center gap-1.5 font-medium text-[#B8A6FF] hover:underline"
+              title="View & Edit SFSU Profile"
+            >
+              <span>🎓</span>
+              <span>{member.role || "Set Role"}</span>
+              <span className="text-[#AAA5B4]">({member.skills.length} skills)</span>
+            </Link>
+            <span className="text-[#2A2E39]">·</span>
+            <button
+              type="button"
+              onClick={() => setCurrentMember(null)}
+              className="text-[#AAA5B4] hover:text-[#F5F2FA] text-[11px] transition"
+            >
+              Switch
+            </button>
+          </div>
         ) : (
-          <div className="flex items-center gap-6">
-            <Image src="/illustrations/start-hero.svg" alt="" width={965} height={624} unoptimized className="h-auto w-48" />
-            <p className="text-lg text-[#AAA5B4]">Nothing on your plate yet.</p>
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#2A2E39] bg-[#171A23] px-3.5 py-1.5 text-xs shadow-sm">
+            <span className="text-[#AAA5B4]">Who are you?</span>
+            {project.members.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setCurrentMember(m.id)}
+                className={`${secondaryButton} px-2.5 py-1 text-xs`}
+              >
+                {m.name.split(" ")[0]}
+              </button>
+            ))}
+            <Link
+              href="/profile"
+              className="ml-1 font-medium text-[#B8A6FF] hover:underline"
+            >
+              + Profile
+            </Link>
+          </div>
+        )}
+      </header>
+
+      {/* 2. The Two Hero Doors: Quick Meet & Project */}
+      <section aria-label="Primary Actions" className="grid gap-4 sm:grid-cols-2 lg:gap-6">
+        {/* Door 1: Quick Meet */}
+        <Link
+          href="/meet"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-200 hover:border-[#B8A6FF]/60 hover:bg-[#1A1D27] shadow-sm"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF] group-hover:scale-105 transition">
+                <CalendarClockIcon className="h-6 w-6" />
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#B8A6FF]">
+                30-sec poll
+              </span>
+            </div>
+            <div>
+              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#B8A6FF] transition flex items-center gap-2">
+                Quick Meet
+              </h2>
+              <p className="mt-1 text-sm text-[#AAA5B4] leading-relaxed">
+                When can we meet? Find team overlap instantly with no login or account required.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex items-center text-sm font-semibold text-[#B8A6FF] group-hover:translate-x-1 transition duration-200">
+            <span>Find a meeting time</span>
+            <ArrowRightIcon className="ml-1.5 h-4 w-4" />
+          </div>
+        </Link>
+
+        {/* Door 2: Project Plan */}
+        <Link
+          href="/plan"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-200 hover:border-[#B8A6FF]/60 hover:bg-[#1A1D27] shadow-sm"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D5B45C]/10 text-[#D5B45C] group-hover:scale-105 transition">
+                <ClipboardListIcon className="h-6 w-6" />
+              </span>
+              <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#D5B45C]">
+                {deadline ? `Target: ${formatDay(deadline)}` : "In Progress"}
+              </span>
+            </div>
+            <div>
+              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#B8A6FF] transition truncate">
+                {project.course ? project.course : project.name}
+              </h2>
+              <p className="mt-1 text-sm text-[#AAA5B4] truncate">
+                {project.name ? project.name : "Assignment Breakdown & Plan"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <span className="text-xs text-[#AAA5B4]">
+              {member
+                ? (mineOpen.length === 1 ? "1 task for you" : `${mineOpen.length} tasks for you`)
+                : `${open.length} active tasks`}
+            </span>
+            <div className="flex items-center text-sm font-semibold text-[#B8A6FF] group-hover:translate-x-1 transition duration-200">
+              <span>Open project plan</span>
+              <ArrowRightIcon className="ml-1.5 h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+      </section>
+
+      {/* 3. Below: Active Stuffs */}
+      <section aria-labelledby="active-heading" className="space-y-6">
+        <div className="flex items-center justify-between border-b border-[#2A2E39] pb-3">
+          <h2 id="active-heading" className="text-xs font-semibold uppercase tracking-[0.14em] text-[#AAA5B4]">
+            Active &amp; Next
+          </h2>
+          <span className={`text-xs font-medium ${attentionCount === 0 ? "text-[#B8A6FF]" : "text-[#D5B45C]"}`}>
+            {attentionCount === 0 ? "✓ On track" : attentionCount === 1 ? "⚠ 1 item needs attention" : `⚠ ${attentionCount} items need attention`}
+          </span>
+        </div>
+
+        {/* Task Focus / Next Step */}
+        {project.tasks.length > 0 ? (
+          <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 shadow-sm">
+            <PlanFocus
+              project={project}
+              me={member}
+              replan={replan}
+              replaceTasks={replaceTasks}
+              updateTaskStatus={updateTaskStatus}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 text-center sm:text-left">
+            <Image
+              src="/illustrations/start-hero.svg"
+              alt=""
+              width={965}
+              height={624}
+              unoptimized
+              className="h-auto w-36 sm:w-44 shrink-0 opacity-80"
+            />
+            <div className="space-y-1">
+              <h3 className="font-heading text-lg font-bold text-[#F5F2FA]">Nothing on your plate yet</h3>
+              <p className="text-sm text-[#AAA5B4]">
+                Upload your assignment or syllabus in the project planner to generate an AI breakdown matched to everyone&apos;s skills.
+              </p>
+              <div className="pt-2">
+                <Link href="/plan" className="inline-flex items-center text-xs font-semibold text-[#B8A6FF] hover:underline">
+                  Go to AI Project Planner →
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
-        <section aria-labelledby="stuff-heading" className="space-y-1">
-          <h2 id="stuff-heading" className={sectionLabel}>
-            Your stuff
-          </h2>
-          <ul className="divide-y divide-[#2A2E39]/70">
-            <li>
-              <Link
-                href="/plan"
-                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
-              >
-                <span aria-hidden className="text-xl">💻</span>
-                <span className="min-w-0 flex-1 truncate font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">{shortName}</span>
-                <span className="shrink-0 text-sm text-[#AAA5B4]">
-                  {member ? (mineOpen.length === 1 ? "1 thing for you" : `${mineOpen.length} things for you`) : `${open.length} open`}
-                </span>
-                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/profile"
-                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
-              >
-                <span aria-hidden className="text-xl">🎓</span>
-                <span className="min-w-0 flex-1 truncate font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">
-                  Profile &amp; Skills
-                </span>
-                <span className="shrink-0 text-sm text-[#AAA5B4]">
-                  {member ? `${member.skills.length} active skills` : "Uni master vault & task roles"}
-                </span>
-                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/meet"
-                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
-              >
-                <span aria-hidden className="text-xl">🗓️</span>
-                <span className="flex-1 font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">Quick meet</span>
-                <span className="shrink-0 text-sm text-[#AAA5B4]">no account</span>
-                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
-              </Link>
-            </li>
-          </ul>
-        </section>
-
-        <CoordinateBox project={project} onHelp={(concern, away) => void replan.request({ concern, away })} />
-      </div>
-
-      {/* RIGHT: when? */}
-      <aside className="space-y-10 lg:border-l lg:border-[#2A2E39]/70 lg:pl-10">
-        <section aria-labelledby="week-heading" className="space-y-3">
-          <h2 id="week-heading" className={sectionLabel}>
-            Next 7 days
-          </h2>
-          <ol className="grid grid-cols-7 gap-1 text-center">
-            {week.map((d, i) => (
-              <li key={d.day} className={`rounded-lg py-2 ${i === 0 ? "bg-[#B8A6FF]/10" : ""}`}>
-                <span className="block text-[11px] text-[#AAA5B4]">{d.weekday}</span>
-                <span className={`block font-heading text-sm ${i === 0 ? "font-bold text-[#B8A6FF]" : "text-[#F5F2FA]"}`}>{d.date}</span>
-                <span className="block h-3 text-[10px] leading-3 text-[#D5B45C]">
-                  {d.due ? <span aria-label={`${d.due} due`}>{"◆".repeat(Math.min(d.due, 3))}</span> : null}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section aria-labelledby="coming-heading" className="space-y-3">
-          <h2 id="coming-heading" className={sectionLabel}>
-            Coming up
-          </h2>
-          <ul className="space-y-3">
-            {nextMeeting && (
-              <li className="flex gap-3">
-                <span aria-hidden className="mt-0.5 text-[#B8A6FF]">●</span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[#F5F2FA]">{nextMeeting.title}</span>
-                  <span className="block text-sm text-[#AAA5B4]">{nextMeeting.scheduledTime}</span>
-                </span>
-              </li>
-            )}
-            {comingUp.map((item) => (
-              <li key={`${item.day}-${item.label}`} className="flex gap-3">
-                <span aria-hidden className={`mt-0.5 ${item.final ? "text-[#D5B45C]" : "text-[#AAA5B4]"}`}>
-                  {item.final ? "★" : "◆"}
-                </span>
-                <span className="min-w-0">
-                  <span className={`block truncate ${item.mine || item.final ? "font-semibold text-[#F5F2FA]" : "text-[#F5F2FA]/85"}`}>
-                    {item.label}
+        {/* Coming Up: Clean, compact milestones */}
+        {(nextMeeting || comingUp.length > 0) && (
+          <div className="rounded-2xl border border-[#2A2E39]/70 bg-[#171A23]/60 p-5 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#AAA5B4]">
+              Coming up
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {nextMeeting && (
+                <div className="flex items-start gap-3 rounded-xl border border-[#2A2E39] bg-[#1D202A] p-3">
+                  <span aria-hidden className="mt-0.5 text-base text-[#B8A6FF]">🗓️</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-[#F5F2FA]">{nextMeeting.title}</span>
+                    <span className="block text-xs text-[#AAA5B4]">{nextMeeting.scheduledTime}</span>
+                  </div>
+                </div>
+              )}
+              {comingUp.slice(0, nextMeeting ? 2 : 3).map((item) => (
+                <div
+                  key={`${item.day}-${item.label}`}
+                  className="flex items-start gap-3 rounded-xl border border-[#2A2E39] bg-[#1D202A] p-3"
+                >
+                  <span aria-hidden className={`mt-0.5 text-sm ${item.final ? "text-[#D5B45C]" : "text-[#B8A6FF]"}`}>
+                    {item.final ? "★" : "◆"}
                   </span>
-                  <span className="block text-sm text-[#AAA5B4]">
-                    {formatDay(item.day)}
-                    {item.mine && " · you"}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <div className="min-w-0 flex-1">
+                    <span className={`block truncate text-sm ${item.mine || item.final ? "font-semibold text-[#F5F2FA]" : "text-[#F5F2FA]/90"}`}>
+                      {item.label}
+                    </span>
+                    <span className="block text-xs text-[#AAA5B4]">
+                      {formatDay(item.day)}{item.mine ? " · you" : ""}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <section aria-labelledby="team-heading" className="space-y-3">
-          <h2 id="team-heading" className={sectionLabel}>
-            Team
-          </h2>
-          {/* People live in the Collaboration Dock; Home only states how the work is going. */}
-          <p className={`text-sm ${attentionCount === 0 ? "text-[#B8A6FF]" : "text-[#D5B45C]"}`}>
-            {attentionCount === 0 ? "✓ On track" : attentionCount === 1 ? "⚠ 1 thing needs attention" : `⚠ ${attentionCount} things need attention`}
-          </p>
-        </section>
-      </aside>
+        {/* Natural Language Coordinate Bar (Google Maps style single action) */}
+        <div className="pt-2">
+          <CoordinateBox project={project} onHelp={(concern, away) => void replan.request({ concern, away })} />
+        </div>
+      </section>
     </div>
   );
 }
