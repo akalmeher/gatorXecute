@@ -10,7 +10,7 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { label: "Project", href: "/" },
+  { label: "Overview", href: "/project" },
   { label: "Plan", href: "/plan" },
   { label: "Work", href: "/dashboard" },
   { label: "Meetings", href: "/meeting" },
@@ -18,6 +18,9 @@ const TABS: Tab[] = [
 
 export function DemoFlowNav() {
   const pathname = usePathname();
+
+  // Feature tabs belong inside the collaboration; Home and Quick Meet stay clean.
+  if (pathname === "/" || pathname === "/start" || pathname.startsWith("/meet")) return null;
 
   return (
     <nav className="w-full border-b border-[#2A2E39] bg-[#171A23]">

@@ -184,19 +184,7 @@ export function StartView() {
           <h2 id="team-heading" className={sectionLabel}>
             Team
           </h2>
-          <div className="flex -space-x-2">
-            {project.members.map((m) => (
-              <span
-                key={m.id}
-                title={m.name}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full font-heading text-xs font-semibold ring-2 ring-[#0F1117] ${
-                  m.id === member?.id ? "bg-[#B8A6FF] text-[#0F1117]" : "bg-[#1D202A] text-[#F5F2FA]"
-                }`}
-              >
-                {m.initials}
-              </span>
-            ))}
-          </div>
+          {/* People live in the Collaboration Dock; Home only states how the work is going. */}
           <p className={`text-sm ${attentionCount === 0 ? "text-[#7FD1A6]" : "text-[#D5B45C]"}`}>
             {attentionCount === 0 ? "✓ On track" : attentionCount === 1 ? "⚠ 1 thing needs attention" : `⚠ ${attentionCount} things need attention`}
           </p>

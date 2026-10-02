@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { Header } from "@/components/shell/Header";
 import { DemoFlowNav } from "@/components/shell/DemoFlowNav";
+import { CollaborationDock } from "@/components/shell/CollaborationDock";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-heading",
@@ -34,7 +35,8 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#0F1117] text-[#F5F2FA] font-sans antialiased selection:bg-[#B8A6FF]/20 selection:text-[#F5F2FA]">
         <AppProviders>
-          <div className="min-h-screen flex flex-col">
+          <CollaborationDock />
+          <div className="min-h-screen flex flex-col pb-16 md:pb-0 md:pl-16">
             <Header />
             <DemoFlowNav />
             <main className="flex-1 page-container py-8 sm:py-10">

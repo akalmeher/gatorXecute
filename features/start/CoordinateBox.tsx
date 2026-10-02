@@ -65,7 +65,7 @@ export function CoordinateBox({ project, onHelp }: CoordinateBoxProps) {
     `/meet#${encodePoll({ title: result?.title || submitted.slice(0, 60), durationMinutes: result?.durationMinutes || 60, people: [] })}`;
 
   return (
-    <section aria-label="Coordinate something" className="space-y-3">
+    <section id="coordinate" aria-label="Coordinate something" className="scroll-mt-20 space-y-3">
       <form
         onSubmit={(e) => {
           e.preventDefault();
