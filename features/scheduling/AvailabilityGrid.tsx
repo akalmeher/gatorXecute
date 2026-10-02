@@ -252,26 +252,7 @@ export function AvailabilityGrid({
     *
     * This becomes the gold "best time" cell.
     */
-    function getBestFullTeamCell(): string | null {
-        for (const day of DAYS) {
-            for (const time of TIME_SLOTS) {
-                const availableMembers =
-                    getAvailableMembers(day, time);
-
-                if (
-                    members.length > 0 &&
-                    availableMembers.length === members.length
-                ) {
-                    return getCellId(day, time);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    const bestFullTeamCell =
-        getBestFullTeamCell();
+    
 
     /*
      * Add or remove one calendar square.
@@ -425,10 +406,10 @@ export function AvailabilityGrid({
 
             {/* Calendar */}
             <div className="overflow-x-auto">
-                <div className="min-w-[650px] select-none">
+                <div className="min-w-[850px] select-none">
 
                     {/* Day headings */}
-                    <div className="grid grid-cols-[80px_repeat(5,1fr)] gap-1 mb-1">
+                    <div className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 mb-1">
                         <div />
 
                         {DAYS.map((day) => (
@@ -447,7 +428,7 @@ export function AvailabilityGrid({
                         (time) => (
                             <div
                                 key={time}
-                                className="grid grid-cols-[80px_repeat(5,1fr)] gap-1 mb-1"
+                                className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 mb-1"
                             >
 
                                 {/* Time label */}
@@ -488,8 +469,9 @@ export function AvailabilityGrid({
                                         const overlapCount =
                                             availableMembers.length;
 
-                                        const isBestFullTeamTime =
-                                            cellId === bestFullTeamCell;
+                                        const isFullTeamAvailable =
+                                            members.length > 0 &&
+                                            overlapCount === members.length;
 
                                         const availableNames =
                                             availableMembers
@@ -581,7 +563,7 @@ export function AvailabilityGrid({
                           rounded-sm
                           border
                           transition
-                          ${isBestFullTeamTime
+                          ${isFullTeamAvailable
                                                         ? "bg-[#D5B45C]/80"
                                                         : getOverlapClass(
                                                             overlapCount

@@ -10,6 +10,8 @@ export const DAYS: AvailabilityBlock["dayOfWeek"][] = [
   "Wed",
   "Thu",
   "Fri",
+  "Sat",
+  "Sun"
 ];
 
 export const START_HOUR = 9;
