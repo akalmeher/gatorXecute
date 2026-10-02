@@ -7,12 +7,15 @@ import { PlanDraftEditor } from "./PlanDraftEditor";
 import { PlanTimeline } from "./PlanTimeline";
 import { usePlanGeneration } from "./usePlanGeneration";
 import { toIsoDay, validatePlanTasks } from "./plan-validation";
-import { PlanRecovery } from "./PlanRecovery";
+import { PlanFocus } from "./PlanFocus";
+import { ProgressRail } from "./ProgressRail";
+import { useReplan } from "./useReplan";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { PlanQuickUpdate } from "./PlanQuickUpdate";
 import { AssignmentInput } from "./AssignmentInput";
 import { FoundSummary } from "./FoundSummary";
 import type { PlanAssignment } from "./plan-types";
-import { describeDraft, describePlanStatus, firstName, formatDay, orderSteps } from "./plan-display";
+import { describeDraft, orderSteps } from "./plan-display";
 
 /**
  * Feature Owner: Divij Anand
@@ -29,7 +32,9 @@ const quietButton =
   "inline-flex items-center rounded-lg px-2 py-1 text-sm text-[#AAA5B4] underline-offset-4 hover:text-[#F5F2FA] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer";
 
 export function ProjectPlanView() {
-  const { project, replaceTasks } = useProject();
+  const { project, replaceTasks, updateTaskStatus } = useProject();
+  const { member } = useCurrentMember();
+  const replan = useReplan(project);
   const { isGenerating, error, draft, generate, updateDraftTask, removeDraftTask, discardDraft } =
     usePlanGeneration(project);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -44,7 +49,6 @@ export function ProjectPlanView() {
     () => (draft ? orderSteps(draft.tasks, project.members) : []),
     [draft, project.members]
   );
-  const status = describePlanStatus(currentSteps);
   const hasPlan = project.tasks.length > 0;
 
   const startDraft = (mode: "live" | "demo") => {
@@ -228,57 +232,53 @@ export function ProjectPlanView() {
           )}
         </section>
       ) : !isGenerating && hasPlan ? (
-        /* Current plan: what's going on, then what needs to happen */
+        /* Current plan: progress, what needs me, then every step */
         <section className="space-y-10">
-          {justAccepted && (
-            <div role="status" className="flex flex-wrap items-center justify-between gap-3 border-l-2 border-[#B8A6FF] pl-5">
-              <p className="text-[#F5F2FA]">Plan saved. Everyone can see their part on the Work tab.</p>
-              <Link href="/dashboard" className={secondaryButton}>
-                Open Work →
-              </Link>
+          <ProgressRail steps={currentSteps} deadline={toIsoDay(project.deadline)} />
+
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+            <div className="min-w-0 space-y-8">
+              {justAccepted && (
+                <p role="status" className="text-sm text-[#7FD1A6]">
+                  ✓ Plan saved ·{" "}
+                  <Link href="/dashboard" className="underline underline-offset-4 hover:text-[#F5F2FA]">
+                    see the board
+                  </Link>
+                </p>
+              )}
+              <PlanFocus
+                project={project}
+                me={member}
+                replan={replan}
+                replaceTasks={replaceTasks}
+                updateTaskStatus={updateTaskStatus}
+                showWaiting
+              />
+              <PlanQuickUpdate project={project} />
             </div>
-          )}
 
-          <div className="space-y-3">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">{status.headline}</h2>
-            {status.next && (
-              <p className="text-lg text-[#F5F2FA]/90">
-                Next up: <strong className="font-semibold">{status.next.task.title}</strong>
-                {status.next.owner && <> with {firstName(status.next.owner)}</>}
-                {status.next.task.dueDate && <>, due {formatDay(status.next.task.dueDate)}</>}.
-              </p>
-            )}
-          </div>
-
-          <PlanRecovery project={project} replaceTasks={replaceTasks} />
-
-          <PlanQuickUpdate project={project} />
-
-          <div className="space-y-5">
-            <h3 className="font-heading text-xl font-semibold text-[#F5F2FA]">Here&apos;s what needs to happen</h3>
-            <PlanTimeline steps={currentSteps} />
-          </div>
-
-          {isComposing ? (
-            <div className="space-y-4 border-t border-[#2A2E39] pt-8">
-              <AssignmentInput value={assignment} onChange={setAssignment} />
-              <div className="flex flex-wrap items-center gap-3">
-                <button type="button" onClick={() => startDraft("live")} className={primaryButton}>
+            <div className="min-w-0 space-y-5 lg:border-l lg:border-[#2A2E39]/70 lg:pl-10">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#AAA5B4]">All steps</h2>
+              <PlanTimeline steps={currentSteps} />
+              {isComposing ? (
+                <div className="space-y-4 border-t border-[#2A2E39] pt-6">
+                  <AssignmentInput value={assignment} onChange={setAssignment} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button type="button" onClick={() => startDraft("live")} className={primaryButton}>
+                      Draft a fresh plan
+                    </button>
+                    <button type="button" onClick={() => setIsComposing(false)} className={quietButton}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setIsComposing(true)} className={quietButton}>
                   Draft a fresh plan
                 </button>
-                <button type="button" onClick={() => setIsComposing(false)} className={quietButton}>
-                  Cancel
-                </button>
-              </div>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-[#AAA5B4]">
-              Plans changed a lot?{" "}
-              <button type="button" onClick={() => setIsComposing(true)} className={quietButton}>
-                Draft a fresh plan
-              </button>
-            </p>
-          )}
+          </div>
         </section>
       ) : !isGenerating && !error ? (
         /* No plan yet */

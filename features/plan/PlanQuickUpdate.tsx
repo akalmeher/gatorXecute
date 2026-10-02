@@ -3,13 +3,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Project, TaskStatus } from "@/types";
 import { useProject } from "@/context/ProjectContext";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import type { ProgressInterpretation, ProgressUpdateRequest, ProgressUpdateResponse } from "./update-types";
+import { primaryButton, quietButton, secondaryButton } from "./PlanFocus";
 
 /**
  * Feature Owner: Divij Anand
- * "What's new?": students say what happened in their own words instead of
+ * "+ Update": students say what happened in their own words instead of
  * maintaining a board. Gemini proposes status changes; nothing changes until
- * they confirm. The update is also shared with the team as meeting context.
+ * they confirm. Never asks who they are twice: it uses the remembered identity.
+ * Confirmed updates are shared with the team as meeting context.
  */
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -19,17 +22,21 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   done: "Done",
 };
 
-const primaryButton =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#B8A6FF] px-5 py-3 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer transition-colors";
-const quietButton =
-  "inline-flex items-center rounded-lg px-2 py-1 text-sm text-[#AAA5B4] underline-offset-4 hover:text-[#F5F2FA] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 cursor-pointer";
 const fieldClass =
-  "rounded-xl border border-[#2A2E39] bg-[#171A23] px-4 py-3 text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60";
+  "w-full rounded-xl bg-[#171A23] px-4 py-3 text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60";
 
-export function PlanQuickUpdate({ project }: { project: Project }) {
+interface PlanQuickUpdateProps {
+  project: Project;
+  /** Start expanded (e.g. when opened from + Coordinate) instead of as "+ Update". */
+  startOpen?: boolean;
+  defaultText?: string;
+}
+
+export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }: PlanQuickUpdateProps) {
   const { updateTaskStatus, addAsyncUpdate } = useProject();
-  const [text, setText] = useState("");
-  const [authorId, setAuthorId] = useState("");
+  const { member, setCurrentMember } = useCurrentMember();
+  const [isOpen, setIsOpen] = useState(startOpen);
+  const [text, setText] = useState(defaultText);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ interpretation: ProgressInterpretation; source: "gemini" | "demo" } | null>(null);
@@ -53,7 +60,7 @@ export function PlanQuickUpdate({ project }: { project: Project }) {
       project: { id: project.id, name: project.name, members: project.members.map(({ id, name }) => ({ id, name })) },
       tasks: project.tasks,
       text,
-      authorId: authorId || undefined,
+      authorId: member?.id,
     };
     try {
       const response = await fetch("/api/progress-update", {
@@ -64,7 +71,7 @@ export function PlanQuickUpdate({ project }: { project: Project }) {
       });
       const data = (await response.json()) as ProgressUpdateResponse;
       if (data.ok) setResult({ interpretation: data.interpretation, source: data.source });
-      else setError(data.issues?.[0] && data.error === "bad_request" ? data.issues[0] : data.message);
+      else setError(data.error === "bad_request" && data.issues?.[0] ? data.issues[0] : data.message);
     } catch {
       if (!controller.signal.aborted) setError("Couldn't reach the update service.");
     } finally {
@@ -77,51 +84,41 @@ export function PlanQuickUpdate({ project }: { project: Project }) {
     if (!result) return;
     const { changes } = result.interpretation;
     changes.forEach((change) => updateTaskStatus(change.taskId, change.status));
-    if (authorId) {
+    if (member) {
       addAsyncUpdate({
         projectId: project.id,
-        memberId: authorId,
+        memberId: member.id,
         type: changes.some((c) => c.status === "blocked") ? "blocker" : "progress",
         content: text.trim(),
       });
     }
-    setConfirmation(
-      `${changes.length === 1 ? "1 step updated" : `${changes.length} steps updated`}.${
-        authorId ? " Your note is shared with the team for the next meeting." : ""
-      }`
-    );
+    setConfirmation(changes.length === 1 ? "✓ Updated · shared for the next meeting" : `✓ ${changes.length} steps updated · shared for the next meeting`);
     setResult(null);
     setText("");
+    setIsOpen(false);
   };
 
   if (result) {
     const { interpretation, source } = result;
     return (
-      <section aria-labelledby="update-heading" className="space-y-4 border-l-2 border-[#B8A6FF] pl-5">
+      <section aria-labelledby="update-heading" className="space-y-3 rounded-2xl bg-[#1A1D27] p-5">
         <h3 id="update-heading" className="font-heading text-lg font-semibold text-[#F5F2FA]">
           {interpretation.summary}
         </h3>
         {interpretation.changes.length > 0 && (
-          <ul className="space-y-1.5">
+          <ul className="space-y-1 text-sm">
             {interpretation.changes.map((change) => (
-              <li key={change.taskId} className="text-sm">
+              <li key={change.taskId}>
                 <span className="text-[#F5F2FA]">{titleById.get(change.taskId)}</span>
-                <span className="text-[#AAA5B4]">: {STATUS_LABEL[statusById.get(change.taskId) ?? "todo"]} → </span>
+                <span className="text-[#AAA5B4]"> · {STATUS_LABEL[statusById.get(change.taskId) ?? "todo"]} → </span>
                 <span className="font-semibold text-[#B8A6FF]">{STATUS_LABEL[change.status]}</span>
-                {change.because && <span className="block text-xs italic text-[#AAA5B4]">“{change.because}”</span>}
               </li>
             ))}
           </ul>
         )}
         {interpretation.unmatched.length > 0 && (
-          <p className="text-sm text-[#AAA5B4]">
-            I couldn&apos;t match: {interpretation.unmatched.map((u) => `“${u}”`).join(", ")}. You can change those on the
-            Work tab.
-          </p>
+          <p className="text-sm text-[#AAA5B4]">Couldn&apos;t match: {interpretation.unmatched.map((u) => `“${u}”`).join(", ")}</p>
         )}
-        <p className="text-xs text-[#AAA5B4]">
-          {source === "gemini" ? "Read by Gemini." : "Demo mode, not Gemini."} Nothing changes until you confirm.
-        </p>
         <div className="flex flex-wrap items-center gap-3">
           {interpretation.changes.length > 0 ? (
             <>
@@ -137,8 +134,24 @@ export function PlanQuickUpdate({ project }: { project: Project }) {
               OK
             </button>
           )}
+          <span className="text-xs text-[#AAA5B4]/70">{source === "gemini" ? "Gemini" : "Not AI"} · nothing changes until you confirm</span>
         </div>
       </section>
+    );
+  }
+
+  if (!isOpen) {
+    return (
+      <div className="flex flex-wrap items-center gap-4">
+        <button type="button" onClick={() => setIsOpen(true)} className={secondaryButton}>
+          + Update
+        </button>
+        {confirmation && (
+          <p role="status" className="text-sm text-[#7FD1A6]">
+            {confirmation}
+          </p>
+        )}
+      </div>
     );
   }
 
@@ -150,55 +163,42 @@ export function PlanQuickUpdate({ project }: { project: Project }) {
         void submit();
       }}
     >
-      <label htmlFor="whats-new" className="block font-heading text-lg font-semibold text-[#F5F2FA]">
-        What&apos;s new?
-      </label>
+      {!member && (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[#AAA5B4]">
+          <span>You are</span>
+          {project.members.map((m) => (
+            <button key={m.id} type="button" onClick={() => setCurrentMember(m.id)} className={`${secondaryButton} px-3 py-1.5`}>
+              {m.name.split(" ")[0]}
+            </button>
+          ))}
+        </div>
+      )}
       <textarea
-        id="whats-new"
+        aria-label="What's new?"
         value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          setConfirmation(null);
-        }}
+        onChange={(e) => setText(e.target.value)}
         rows={2}
         maxLength={1000}
         disabled={isLoading}
-        placeholder="e.g. finished the research btw, still waiting on Maya's sources"
-        className={`${fieldClass} w-full max-w-2xl`}
+        autoFocus
+        placeholder="What's new? e.g. finished the API, waiting on Ammar's UI"
+        className={fieldClass}
       />
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-[#AAA5B4]">
-          From
-          <select
-            value={authorId}
-            onChange={(e) => setAuthorId(e.target.value)}
-            disabled={isLoading}
-            className={`${fieldClass} py-2 text-sm cursor-pointer`}
-          >
-            <option value="">Choose your name</option>
-            {project.members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </label>
         <button type="submit" disabled={isLoading || !text.trim()} className={primaryButton}>
           {isLoading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#0F1117]/30 border-t-[#0F1117]" />}
-          {isLoading ? "Reading…" : "Update the plan"}
+          {isLoading ? "Reading…" : "Update"}
+        </button>
+        <button type="button" onClick={() => setIsOpen(false)} className={quietButton}>
+          Cancel
         </button>
       </div>
       {error && (
         <p role="alert" className="text-sm text-[#D5B45C]">
           {error}{" "}
           <button type="button" onClick={() => void submit("demo")} className={quietButton}>
-            Try simple matching instead
+            Try simple matching
           </button>
-        </p>
-      )}
-      {confirmation && (
-        <p role="status" className="text-sm text-[#F5F2FA]">
-          ✓ {confirmation}
         </p>
       )}
     </form>

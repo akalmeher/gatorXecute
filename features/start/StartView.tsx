@@ -1,146 +1,207 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
-import { PROBLEM_PHRASE, findPlanProblems, needsAttention } from "@/features/plan/plan-health";
-import { describePlanStatus, firstName, formatDay, orderSteps } from "@/features/plan/plan-display";
-import { todayIsoDay } from "@/features/plan/plan-validation";
-import {
-  ArrowRightIcon,
-  CalendarClockIcon,
-  ClipboardListIcon,
-  LayoutDashboardIcon,
-  MessageCircleMoreIcon,
-} from "./StartIcons";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
+import { useReplan } from "@/features/plan/useReplan";
+import { PlanFocus, quietButton, secondaryButton, sectionLabel } from "@/features/plan/PlanFocus";
+import { findPlanProblems, needsAttention } from "@/features/plan/plan-health";
+import { formatDay } from "@/features/plan/plan-display";
+import { addDays, toIsoDay, todayIsoDay } from "@/features/plan/plan-validation";
+import { CoordinateBox } from "./CoordinateBox";
+import { ArrowRightIcon } from "./StartIcons";
 
 /**
  * Feature Owner: Divij Anand
- * Start screen: "What do you need right now?" Simple until complexity is useful.
- * Each choice goes only as deep as it needs to; the full workspace is one click
- * away for teams that want it, and invisible for everyone else.
+ * Home as a cockpit. Left: what needs me (next step, attention, my stuff,
+ * + Coordinate). Right: when (the next 7 days, coming up) and the team.
+ * Built to be understood while barely reading.
  */
 
-interface StartOption {
-  href: string;
-  title: string;
-  description: string;
-  Icon: (props: { className?: string }) => React.ReactElement;
+function greeting(now = new Date()) {
+  const h = now.getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
-const OPTIONS: StartOption[] = [
-  {
-    href: "/meet",
-    title: "Find a time to meet",
-    description: "No account, no app. Add when you're free and send a link.",
-    Icon: CalendarClockIcon,
-  },
-  {
-    href: "/plan",
-    title: "Organize a group project",
-    description: "Upload the assignment and get a plan everyone can see.",
-    Icon: ClipboardListIcon,
-  },
-  {
-    href: "/meeting",
-    title: "Catch up on a meeting",
-    description: "What you missed and what it means for you.",
-    Icon: MessageCircleMoreIcon,
-  },
-  {
-    href: "/dashboard",
-    title: "See everyone's work",
-    description: "The full board, for when you want every detail.",
-    Icon: LayoutDashboardIcon,
-  },
-];
-
 export function StartView() {
-  const { project } = useProject();
-  const hasProject = project.tasks.length > 0;
-  const status = describePlanStatus(orderSteps(project.tasks, project.members));
-  const [problem] = findPlanProblems(project.tasks, todayIsoDay()).filter(needsAttention);
+  const { project, replaceTasks, updateTaskStatus } = useProject();
+  const { member, setCurrentMember } = useCurrentMember();
+  const replan = useReplan(project);
+  const today = todayIsoDay();
+  const deadline = toIsoDay(project.deadline);
+  const shortName = project.course.split(":")[0] || project.name;
+
+  const open = useMemo(() => project.tasks.filter((t) => t.status !== "done"), [project.tasks]);
+  const mineOpen = member ? open.filter((t) => t.ownerId === member.id) : [];
+  const attentionCount = findPlanProblems(project.tasks, today).filter(needsAttention).length;
+
+  const comingUp = useMemo(() => {
+    const items = open
+      .filter((t) => t.dueDate && t.dueDate >= today)
+      .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+      .slice(0, 4)
+      .map((t) => ({ day: t.dueDate as string, label: t.title, mine: t.ownerId === member?.id, final: false }));
+    if (deadline) items.push({ day: deadline, label: `${shortName} due`, mine: false, final: true });
+    return items.sort((a, b) => a.day.localeCompare(b.day));
+  }, [open, today, deadline, member, shortName]);
+
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(today, i);
+    const [y, m, d] = day.split("-").map(Number);
+    return {
+      day,
+      weekday: new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "narrow" }),
+      date: d,
+      due: comingUp.filter((c) => c.day === day).length,
+    };
+  });
+  const nextMeeting = project.meetings[0];
+  const firstName = member?.name.split(" ")[0];
 
   return (
-    <div className="space-y-10 max-w-4xl">
-      <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-[#B8A6FF]">Coordination without a coordinator</p>
+    <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
+      {/* LEFT: what needs me? */}
+      <div className="min-w-0 space-y-10">
+        <header className="space-y-2">
           <h1 className="font-heading text-3xl sm:text-[40px] sm:leading-tight font-bold tracking-tight text-[#F5F2FA]">
-            What do you need right now?
+            {firstName ? `${greeting()}, ${firstName}.` : `${greeting()}.`}
           </h1>
-          <p className="text-lg text-[#AAA5B4] max-w-md leading-relaxed">
-            Start small. gatorXecute only adds more when your group needs it.
-          </p>
-        </div>
-        <Image
-          src="/illustrations/start-hero.svg"
-          alt=""
-          width={965}
-          height={624}
-          unoptimized
-          priority
-          className="w-56 sm:w-72 h-auto shrink-0"
-        />
-      </div>
-
-      {/* Returning team: the answer first */}
-      {hasProject && (
-        <Link
-          href="/plan"
-          className="group block rounded-2xl border border-[#B8A6FF]/40 bg-[#B8A6FF]/[0.06] p-6 sm:p-8 hover:border-[#B8A6FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 transition-colors"
-        >
-          <p className="text-sm font-medium text-[#B8A6FF]">Continue · {project.course}</p>
-          <p className="mt-1 font-heading text-2xl font-bold tracking-tight text-[#F5F2FA]">{project.name}</p>
-          <p className="mt-3 text-lg text-[#F5F2FA]/90">
-            {status.headline}
-            {status.next && (
-              <>
-                {" "}Next up: <strong className="font-semibold">{status.next.task.title}</strong>
-                {status.next.owner && <> with {firstName(status.next.owner)}</>}
-                {status.next.task.dueDate && <>, due {formatDay(status.next.task.dueDate)}</>}.
-              </>
-            )}
-          </p>
-          {problem && (
-            <p className="mt-2 text-[#AAA5B4]">
-              <span className="text-[#D5B45C]">Needs attention:</span> {problem.task.title} {PROBLEM_PHRASE[problem.kind]}.
-            </p>
+          {member ? (
+            <button type="button" onClick={() => setCurrentMember(null)} className={`${quietButton} -ml-2 text-xs`}>
+              Not {firstName}?
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-sm text-[#AAA5B4]">Who are you?</span>
+              {project.members.map((m) => (
+                <button key={m.id} type="button" onClick={() => setCurrentMember(m.id)} className={`${secondaryButton} px-3 py-1.5`}>
+                  {m.name.split(" ")[0]}
+                </button>
+              ))}
+            </div>
           )}
-          <p className="mt-4 text-sm font-semibold text-[#B8A6FF]">
-            Open the plan <ArrowRightIcon className="inline h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </p>
-        </Link>
-      )}
+        </header>
 
-      <section aria-labelledby="start-options" className="space-y-4">
-        {hasProject && (
-          <h2 id="start-options" className="font-heading text-xl font-semibold text-[#F5F2FA]">
-            Or start something new
-          </h2>
+        {project.tasks.length > 0 ? (
+          <PlanFocus project={project} me={member} replan={replan} replaceTasks={replaceTasks} updateTaskStatus={updateTaskStatus} />
+        ) : (
+          <div className="flex items-center gap-6">
+            <Image src="/illustrations/start-hero.svg" alt="" width={965} height={624} unoptimized className="h-auto w-48" />
+            <p className="text-lg text-[#AAA5B4]">Nothing on your plate yet.</p>
+          </div>
         )}
-        {!hasProject && <h2 id="start-options" className="sr-only">Options</h2>}
-        <ul className="grid gap-4 sm:grid-cols-2">
-          {OPTIONS.map((option) => (
-            <li key={option.href}>
+
+        <section aria-labelledby="stuff-heading" className="space-y-1">
+          <h2 id="stuff-heading" className={sectionLabel}>
+            Your stuff
+          </h2>
+          <ul className="divide-y divide-[#2A2E39]/70">
+            <li>
               <Link
-                href={option.href}
-                className="group flex h-full flex-col justify-between gap-3 rounded-2xl border border-[#2A2E39] p-6 hover:border-[#B8A6FF]/50 hover:bg-[#1D202A]/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 transition-colors"
+                href="/plan"
+                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
               >
-                <span className="space-y-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF]">
-                    <option.Icon className="h-5 w-5" />
-                  </span>
-                  <span className="block font-heading text-lg font-semibold text-[#F5F2FA]">{option.title}</span>
-                  <span className="block text-sm text-[#AAA5B4]">{option.description}</span>
+                <span aria-hidden className="text-xl">💻</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">{shortName}</span>
+                <span className="shrink-0 text-sm text-[#AAA5B4]">
+                  {member ? (mineOpen.length === 1 ? "1 thing for you" : `${mineOpen.length} things for you`) : `${open.length} open`}
                 </span>
-                <ArrowRightIcon className="h-5 w-5 text-[#B8A6FF] transition-transform group-hover:translate-x-1" />
+                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
               </Link>
             </li>
-          ))}
-        </ul>
-      </section>
+            <li>
+              <Link
+                href="/meet"
+                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
+              >
+                <span aria-hidden className="text-xl">🗓️</span>
+                <span className="flex-1 font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">Quick meet</span>
+                <span className="shrink-0 text-sm text-[#AAA5B4]">no account</span>
+                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
+              </Link>
+            </li>
+          </ul>
+        </section>
+
+        <CoordinateBox project={project} onHelp={(concern) => void replan.request({ concern })} />
+      </div>
+
+      {/* RIGHT: when? */}
+      <aside className="space-y-10 lg:border-l lg:border-[#2A2E39]/70 lg:pl-10">
+        <section aria-labelledby="week-heading" className="space-y-3">
+          <h2 id="week-heading" className={sectionLabel}>
+            Next 7 days
+          </h2>
+          <ol className="grid grid-cols-7 gap-1 text-center">
+            {week.map((d, i) => (
+              <li key={d.day} className={`rounded-lg py-2 ${i === 0 ? "bg-[#B8A6FF]/10" : ""}`}>
+                <span className="block text-[11px] text-[#AAA5B4]">{d.weekday}</span>
+                <span className={`block font-heading text-sm ${i === 0 ? "font-bold text-[#B8A6FF]" : "text-[#F5F2FA]"}`}>{d.date}</span>
+                <span className="block h-3 text-[10px] leading-3 text-[#D5B45C]">
+                  {d.due ? <span aria-label={`${d.due} due`}>{"◆".repeat(Math.min(d.due, 3))}</span> : null}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="coming-heading" className="space-y-3">
+          <h2 id="coming-heading" className={sectionLabel}>
+            Coming up
+          </h2>
+          <ul className="space-y-3">
+            {nextMeeting && (
+              <li className="flex gap-3">
+                <span aria-hidden className="mt-0.5 text-[#B8A6FF]">●</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[#F5F2FA]">{nextMeeting.title}</span>
+                  <span className="block text-sm text-[#AAA5B4]">{nextMeeting.scheduledTime}</span>
+                </span>
+              </li>
+            )}
+            {comingUp.map((item) => (
+              <li key={`${item.day}-${item.label}`} className="flex gap-3">
+                <span aria-hidden className={`mt-0.5 ${item.final ? "text-[#D5B45C]" : "text-[#AAA5B4]"}`}>
+                  {item.final ? "★" : "◆"}
+                </span>
+                <span className="min-w-0">
+                  <span className={`block truncate ${item.mine || item.final ? "font-semibold text-[#F5F2FA]" : "text-[#F5F2FA]/85"}`}>
+                    {item.label}
+                  </span>
+                  <span className="block text-sm text-[#AAA5B4]">
+                    {formatDay(item.day)}
+                    {item.mine && " · you"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="team-heading" className="space-y-3">
+          <h2 id="team-heading" className={sectionLabel}>
+            Team
+          </h2>
+          <div className="flex -space-x-2">
+            {project.members.map((m) => (
+              <span
+                key={m.id}
+                title={m.name}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full font-heading text-xs font-semibold ring-2 ring-[#0F1117] ${
+                  m.id === member?.id ? "bg-[#B8A6FF] text-[#0F1117]" : "bg-[#1D202A] text-[#F5F2FA]"
+                }`}
+              >
+                {m.initials}
+              </span>
+            ))}
+          </div>
+          <p className={`text-sm ${attentionCount === 0 ? "text-[#7FD1A6]" : "text-[#D5B45C]"}`}>
+            {attentionCount === 0 ? "✓ On track" : attentionCount === 1 ? "⚠ 1 thing needs attention" : `⚠ ${attentionCount} things need attention`}
+          </p>
+        </section>
+      </aside>
     </div>
   );
 }

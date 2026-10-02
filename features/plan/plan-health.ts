@@ -63,9 +63,9 @@ export function findPlanProblems(tasks: Task[], today: string): PlanProblem[] {
 }
 
 export const PROBLEM_PHRASE: Record<PlanProblemKind, string> = {
-  late: "is running late",
+  late: "is behind schedule",
   stuck: "is stuck",
-  unowned: "doesn't have anyone yet",
+  unowned: "needs an owner",
   waiting: "is waiting on an earlier step",
 };
 
