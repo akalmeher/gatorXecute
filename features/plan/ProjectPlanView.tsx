@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
-import type { Task } from "@/types";
 import { PlanDraftEditor } from "./PlanDraftEditor";
 import { usePlanGeneration } from "./usePlanGeneration";
 import { toIsoDay, validatePlanTasks } from "./plan-validation";
@@ -14,12 +13,7 @@ import { toIsoDay, validatePlanTasks } from "./plan-validation";
  * Note: Workspace view for review and editing of team plans and work items.
  */
 export function ProjectPlanView() {
-  const projectContext = useProject();
-  const { project, getMemberById } = projectContext;
-  // TODO(divij): drop this cast once Ammar's replaceTasks lands in ProjectContext on main.
-  const replaceTasks = (projectContext as typeof projectContext & {
-    replaceTasks?: (tasks: Task[]) => void;
-  }).replaceTasks;
+  const { project, getMemberById, replaceTasks } = useProject();
 
   const { isGenerating, error, draft, generate, updateDraftTask, removeDraftTask, discardDraft } =
     usePlanGeneration(project);
@@ -33,7 +27,7 @@ export function ProjectPlanView() {
   };
 
   const handleAccept = () => {
-    if (!draft || !replaceTasks) return;
+    if (!draft) return;
     const result = validatePlanTasks(draft.tasks, {
       projectId: project.id,
       memberIds: project.members.map((m) => m.id),
@@ -199,11 +193,6 @@ export function ProjectPlanView() {
           )}
 
           <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-2">
-            {!replaceTasks && (
-              <span className="text-xs text-[#AAA5B4] sm:mr-auto">
-                Accepting is waiting on the shared replaceTasks action.
-              </span>
-            )}
             <button
               type="button"
               onClick={handleDiscard}
@@ -215,7 +204,7 @@ export function ProjectPlanView() {
             <button
               type="button"
               onClick={handleAccept}
-              disabled={isGenerating || !replaceTasks || draft.tasks.length === 0}
+              disabled={isGenerating || draft.tasks.length === 0}
               className="rounded-xl bg-[#B8A6FF] px-5 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               Accept plan
