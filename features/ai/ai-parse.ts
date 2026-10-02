@@ -61,6 +61,7 @@ export function parseTasks(value: unknown, issues: string[]): Task[] {
         ownerId: nonEmptyString(t.ownerId) ? t.ownerId : undefined,
         status: TASK_STATUSES.includes(t.status as TaskStatus) ? (t.status as TaskStatus) : "todo",
         dependencies: isStringArray(t.dependencies) ? t.dependencies : [],
+        estimatedMinutes: typeof t.estimatedMinutes === "number" ? t.estimatedMinutes : undefined,
         dueDate: typeof t.dueDate === "string" ? t.dueDate : undefined,
       },
     ];

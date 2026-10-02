@@ -7,14 +7,8 @@ import { PlanDraftEditor } from "./PlanDraftEditor";
 import { PlanTimeline } from "./PlanTimeline";
 import { usePlanGeneration } from "./usePlanGeneration";
 import { toIsoDay, validatePlanTasks } from "./plan-validation";
-import {
-  describeDraft,
-  describePlanStatus,
-  describeWaitingOn,
-  firstName,
-  formatDay,
-  orderSteps,
-} from "./plan-display";
+import { PlanRecovery } from "./PlanRecovery";
+import { describeDraft, describePlanStatus, firstName, formatDay, orderSteps } from "./plan-display";
 
 /**
  * Feature Owner: Divij Anand
@@ -231,17 +225,9 @@ export function ProjectPlanView() {
                 {status.next.task.dueDate && <>, due {formatDay(status.next.task.dueDate)}</>}.
               </p>
             )}
-            {status.waiting && (
-              <p className="text-[#AAA5B4]">
-                <span className="text-[#D5B45C]">Waiting:</span> {status.waiting.task.title}
-                {status.waiting.waitingOn.length > 0
-                  ? ` can start once ${describeWaitingOn(status.waiting.waitingOn).text} ${
-                      describeWaitingOn(status.waiting.waitingOn).verb
-                    } finished.`
-                  : " is on hold."}
-              </p>
-            )}
           </div>
+
+          <PlanRecovery project={project} replaceTasks={replaceTasks} />
 
           <div className="space-y-5">
             <h3 className="font-heading text-xl font-semibold text-[#F5F2FA]">Here&apos;s what needs to happen</h3>
