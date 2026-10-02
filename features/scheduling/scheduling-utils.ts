@@ -10,6 +10,8 @@ export const DAYS: AvailabilityBlock["dayOfWeek"][] = [
   "Wed",
   "Thu",
   "Fri",
+  "Sat",
+  "Sun"
 ];
 
 export const START_HOUR = 9;
@@ -165,7 +167,7 @@ export function cellsToBlocks(
       const isConsecutive =
         currentTime !== undefined &&
         timeToMinutes(currentTime) ===
-          timeToMinutes(previousTime) + SLOT_MINUTES;
+        timeToMinutes(previousTime) + SLOT_MINUTES;
 
       if (isConsecutive) {
         previousTime = currentTime;
