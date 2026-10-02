@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Project, Task, TaskStatus, AsyncUpdate } from "@/types";
+import { Project, Task, TaskStatus, AsyncUpdate, AvailabilityBlock } from "@/types";
 import { INITIAL_DEMO_PROJECT } from "@/lib/mock-data";
 
 interface ProjectContextValue {
