@@ -48,6 +48,27 @@ Types: `features/plan/replan-types.ts`. Used by the Plan page.
 - Every change is checked in code (real steps and members, nothing done changes,
   dates between today and the deadline, order kept). Applied only on "Use suggestion".
 
+## POST /api/availability (for Oscar): "Tell us when you're free"
+
+Types: `features/ai/availability-types.ts`. Time math: `features/ai/availability-compile.ts`.
+
+Request: `{ memberId, text, current?, grid? }`
+- `text`: sentences ("free after 4 except Wednesdays, don't schedule me Friday
+  evenings") or a pasted class schedule ("BIO 230 MWF 10:00-10:50").
+- `current`: the member's existing blocks, so "Thursdays don't work anymore" edits them.
+- `grid` defaults to Oscar's: Mon–Fri, 9 AM–9 PM, 30-minute cells, local time.
+
+Response `result`: `{ blocks, summary, readBack[], notes[], rules[] }`
+- `blocks` are canonical `AvailabilityBlock`s (assignable to `AvailabilityBlock[]`),
+  ready for `updateMemberAvailability(memberId, blocks)`, **after the student confirms**.
+- Optional `level` on a block: `"preferred"` or `"if-needed"` (absent = plain available).
+  Grids that only know free/busy can ignore it.
+- `summary` is what Gemini understood; `readBack` is what the grid now says,
+  computed from the cells (not AI). Show both, then **[Looks right] [Edit on grid]**.
+- `notes` lists anything skipped (e.g. Saturday on a weekday grid) or unclear.
+- Gemini only reads words into rules. Rounding is cautious: free time shrinks to
+  whole cells, busy time grows (a class ending 10:50 blocks until 11:00).
+
 ## POST /api/catch-up (for Shreya): "Here's what you missed"
 
 Types: `features/ai/catch-up-types.ts`.
