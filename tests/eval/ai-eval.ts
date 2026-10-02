@@ -58,7 +58,11 @@ const SCENARIOS: Scenario[] = [
     route: "availability",
     name: "free after 4 except Wed, no Fri evenings",
     run: () => generateAvailability({ memberId: "me", text: "I'm free after 4 except Wednesdays, and don't schedule me Friday evenings" }),
-    correct: (b) => JSON.stringify(r(b).readBack) === JSON.stringify(["Mon, Tue, Thu: 4 PM–9 PM", "Wed: not free", "Fri: 4 PM–5 PM"]),
+    correct: (b) => {
+      // Days follow Oscar's grid (now Mon–Sun), so weekends appear as "not free".
+      const lines = r(b).readBack as string[];
+      return lines.includes("Mon, Tue, Thu: 4 PM–9 PM") && lines.includes("Fri: 4 PM–5 PM") && lines.some((l) => l.startsWith("Wed") && l.endsWith("not free"));
+    },
   },
   {
     route: "availability",
