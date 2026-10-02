@@ -7,7 +7,7 @@ import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { useProfile } from "@/features/profile/useProfile";
 import { ProfileForm } from "@/features/profile/ProfileForm";
-import { initialsOf, profileToMember } from "@/features/profile/profile";
+import { initialsOf, profileToMember, resolveMemberForProject } from "@/features/profile/profile";
 import { MAX_TEAM, type Team, decodeTeam, encodeTeam, joinTeam, skillCoverage } from "./team-link";
 
 /**
@@ -29,7 +29,7 @@ const first = (name: string) => name.split(" ")[0] || name;
 
 export function TeamView() {
   const router = useRouter();
-  const { profile, saveProfile } = useProfile();
+  const { profile, saveProfile, getProjectProfile } = useProfile();
   const { startProject } = useProject();
   const { setCurrentMember } = useCurrentMember();
   const [team, setTeam] = useState<Team | null>(null);
@@ -79,7 +79,12 @@ export function TeamView() {
 
   const planWithTeam = () => {
     if (!team || !profile) return;
-    startProject({ name: team.name, course: team.course, members: team.members.map(profileToMember) });
+    const projectKey = team.course || team.name;
+    const projectProf = getProjectProfile(projectKey);
+    const members = team.members.map((m) =>
+      m.id === profile.id ? resolveMemberForProject(profile, projectProf) : profileToMember(m)
+    );
+    startProject({ name: team.name, course: team.course, members });
     setCurrentMember(profile.id);
     router.push("/plan");
   };
@@ -221,11 +226,21 @@ export function TeamView() {
           <p className="text-xs text-[#AAA5B4]">
             Changed your skills?{" "}
             <Link href="/profile" className="text-[#B8A6FF] underline-offset-4 hover:underline">
-              Edit your profile
+              Customize your project profile &amp; roles
             </Link>
             , then{" "}
-            <button type="button" onClick={() => setTeam(joinTeam(team, profile))} className="text-[#B8A6FF] underline-offset-4 hover:underline">
-              refresh your entry
+            <button
+              type="button"
+              onClick={() => {
+                const projectProf = getProjectProfile(team.course || team.name);
+                const active = projectProf && projectProf.activeSkills.length > 0 ? projectProf.activeSkills : profile.skills;
+                const role = projectProf?.role || profile.major;
+                const updatedMe = { ...profile, ...(role ? { major: role } : {}), skills: active };
+                setTeam(joinTeam(team, updatedMe));
+              }}
+              className="text-[#B8A6FF] underline-offset-4 hover:underline cursor-pointer"
+            >
+              refresh your team entry
             </button>
             .
           </p>

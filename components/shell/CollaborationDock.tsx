@@ -204,11 +204,21 @@ export function CollaborationDock() {
                     {state.line}
                   </p>
                   {state.detail && <p className="text-[#AAA5B4]">{state.detail}</p>}
+                  {member.role && <p className="mt-1.5 text-xs font-medium text-[#B8A6FF]">{member.role}</p>}
                   {member.skills.length > 0 && (
-                    <p className="mt-2 text-xs text-[#AAA5B4]">Can do: {member.skills.slice(0, 4).join(", ")}</p>
+                    <p className="mt-1 text-xs text-[#AAA5B4]">Active: {member.skills.slice(0, 4).join(", ")}</p>
                   )}
                   {open && (
                     <div className="mt-3 flex flex-wrap gap-2">
+                      {isMe && (
+                        <Link
+                          href="/profile"
+                          onClick={() => setPanel(null)}
+                          className="rounded-lg bg-[#B8A6FF] px-3 py-1.5 text-xs font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90"
+                        >
+                          Edit Profile &amp; Roles
+                        </Link>
+                      )}
                       <Link
                         href="/plan"
                         onClick={() => setPanel(null)}

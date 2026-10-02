@@ -27,16 +27,26 @@ export function Header() {
         </Link>
 
         {member ? (
-          <span
-            title={member.name}
-            aria-label={`You: ${member.name}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#B8A6FF] font-heading text-xs font-bold text-[#0F1117]"
+          <Link
+            href="/profile"
+            title={`${member.name} — Profile & Roles`}
+            aria-label={`You: ${member.name}. Click to view profile and roles.`}
+            className="group flex items-center gap-2 rounded-full p-0.5 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]"
           >
-            {member.initials}
-          </span>
+            <span className="hidden text-xs text-[#AAA5B4] group-hover:text-[#F5F2FA] sm:inline">
+              {member.name.split(" ")[0]}
+            </span>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#B8A6FF] font-heading text-xs font-bold text-[#0F1117] shadow-sm">
+              {member.initials}
+            </span>
+          </Link>
         ) : (
-          <Link href="/" className="text-sm text-[#AAA5B4] hover:text-[#F5F2FA]">
-            Who are you?
+          <Link
+            href="/profile"
+            className="flex items-center gap-1.5 rounded-xl border border-[#2A2E39] bg-[#171A23] px-3 py-1.5 text-xs text-[#AAA5B4] hover:border-[#B8A6FF]/50 hover:text-[#F5F2FA]"
+          >
+            <span>🎓</span>
+            <span>Profile</span>
           </Link>
         )}
       </div>

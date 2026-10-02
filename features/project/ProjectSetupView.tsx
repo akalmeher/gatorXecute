@@ -1,10 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
 
 export function ProjectSetupView() {
   const { project } = useProject();
+  const { member: me } = useCurrentMember();
 
   return (
     <div className="space-y-10">
@@ -38,40 +41,55 @@ export function ProjectSetupView() {
 
       {/* Team Roster Section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-heading text-2xl font-semibold text-[#F5F2FA] tracking-tight">
               Team members
             </h2>
             <p className="text-sm text-[#AAA5B4] mt-0.5">
-              Everyone&apos;s strengths and what they want to practice on this project.
+              Everyone&apos;s active skills and learning goals for {project.course || "this project"}.
             </p>
           </div>
-          <span className="text-sm text-[#AAA5B4]">
-            {project.members.length} teammates
-          </span>
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#2A2E39] bg-[#171A23] px-3.5 py-2 text-xs font-semibold text-[#B8A6FF] hover:border-[#B8A6FF]/60 hover:text-[#F5F2FA]"
+          >
+            <span>⚡</span>
+            <span>Customize your project profile →</span>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {project.members.map((member) => (
             <div
               key={member.id}
-              className="flex flex-col justify-between rounded-xl border border-[#2A2E39] bg-[#1D202A] p-6 space-y-5 hover:border-[#B8A6FF]/40 transition-colors"
+              className={`flex flex-col justify-between rounded-xl border p-6 space-y-5 transition-colors ${
+                member.id === me?.id
+                  ? "border-[#B8A6FF]/50 bg-[#1D202A] ring-1 ring-[#B8A6FF]/30"
+                  : "border-[#2A2E39] bg-[#1D202A] hover:border-[#B8A6FF]/40"
+              }`}
             >
               <div className="space-y-4">
                 {/* Member header */}
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#171A23] border border-[#2A2E39] font-heading text-[#B8A6FF] font-bold text-sm">
-                    {member.initials}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#171A23] border border-[#2A2E39] font-heading text-[#B8A6FF] font-bold text-sm">
+                      {member.initials}
+                    </div>
+                    <div>
+                      <h3 className="font-heading text-lg font-semibold text-[#F5F2FA] leading-snug">
+                        {member.name}
+                      </h3>
+                      <p className="text-sm text-[#AAA5B4]">
+                        {member.role || "Team Member"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-heading text-lg font-semibold text-[#F5F2FA] leading-snug">
-                      {member.name}
-                    </h3>
-                    <p className="text-sm text-[#AAA5B4]">
-                      {member.role || "Team Member"}
-                    </p>
-                  </div>
+                  {member.id === me?.id && (
+                    <span className="rounded-full bg-[#B8A6FF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#B8A6FF]">
+                      You
+                    </span>
+                  )}
                 </div>
 
                 {/* Strengths */}

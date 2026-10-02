@@ -69,9 +69,19 @@ export function StartView() {
             {firstName ? `${greeting()}, ${firstName}.` : `${greeting()}.`}
           </h1>
           {member ? (
-            <button type="button" onClick={() => setCurrentMember(null)} className={`${quietButton} -ml-2 text-xs`}>
-              Not {firstName}?
-            </button>
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Link
+                href="/profile"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#B8A6FF] hover:underline"
+              >
+                <span>🎓</span>
+                <span>Profile &amp; Task Roles ({member.role || "Set role"})</span>
+              </Link>
+              <span className="text-[#2A2E39]">·</span>
+              <button type="button" onClick={() => setCurrentMember(null)} className={`${quietButton} -ml-2 text-xs`}>
+                Not {firstName}?
+              </button>
+            </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-sm text-[#AAA5B4]">Who are you?</span>
@@ -80,6 +90,9 @@ export function StartView() {
                   {m.name.split(" ")[0]}
                 </button>
               ))}
+              <Link href="/profile" className="ml-1 inline-flex items-center gap-1 text-xs text-[#B8A6FF] hover:underline">
+                + Create profile
+              </Link>
             </div>
           )}
         </header>
@@ -107,6 +120,21 @@ export function StartView() {
                 <span className="min-w-0 flex-1 truncate font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">{shortName}</span>
                 <span className="shrink-0 text-sm text-[#AAA5B4]">
                   {member ? (mineOpen.length === 1 ? "1 thing for you" : `${mineOpen.length} things for you`) : `${open.length} open`}
+                </span>
+                <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/profile"
+                className="group flex items-center gap-4 rounded-lg py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
+              >
+                <span aria-hidden className="text-xl">🎓</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-[#F5F2FA] group-hover:text-[#B8A6FF]">
+                  Profile &amp; Skills
+                </span>
+                <span className="shrink-0 text-sm text-[#AAA5B4]">
+                  {member ? `${member.skills.length} active skills` : "Uni master vault & task roles"}
                 </span>
                 <ArrowRightIcon className="h-4 w-4 text-[#AAA5B4] group-hover:text-[#B8A6FF]" />
               </Link>
