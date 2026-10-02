@@ -17,6 +17,7 @@ import { AssignmentInput } from "./AssignmentInput";
 import { FoundSummary } from "./FoundSummary";
 import type { PlanAssignment } from "./plan-types";
 import { describeDraft, orderSteps } from "./plan-display";
+import { playPop } from "@/lib/sound-fx";
 
 /**
  * Feature Owner: Divij Anand
@@ -42,8 +43,38 @@ export function ProjectPlanView() {
   const [acceptIssues, setAcceptIssues] = useState<string[]>([]);
   const [justAccepted, setJustAccepted] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+  const [copiedMd, setCopiedMd] = useState(false);
   const [assignment, setAssignment] = useState<PlanAssignment>({});
   const hasAssignment = Boolean(assignment.file || assignment.text?.trim());
+
+  const copyMarkdown = async () => {
+    const tasksToExport = draft ? draft.tasks : project.tasks;
+    if (tasksToExport.length === 0) return;
+    const lines = [
+      `# 🐊 ${project.name} ${project.course ? `(${project.course})` : ""}`,
+      `**Target Deadline:** ${project.deadline || "TBD"}`,
+      "",
+      "## Project Roadmap & Tasks",
+      ...tasksToExport.map((t) => {
+        const owner = project.members.find((m) => m.id === t.ownerId);
+        const check = t.status === "done" ? "[x]" : "[ ]";
+        const due = t.dueDate ? ` (Due: ${t.dueDate})` : "";
+        const assigned = owner ? ` — @${owner.name}` : "";
+        const reason = t.assignmentReason ? `\n  *Note:* ${t.assignmentReason}` : "";
+        return `- ${check} **${t.title}**${assigned}${due}${reason}`;
+      }),
+      "",
+      "*Exported from gatorXecute · SFSU AI Hackathon*",
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopiedMd(true);
+      playPop();
+      setTimeout(() => setCopiedMd(false), 2500);
+    } catch {
+      setCopiedMd(false);
+    }
+  };
 
   const currentSteps = useMemo(() => orderSteps(project.tasks, project.members), [project.tasks, project.members]);
   const draftSteps = useMemo(
@@ -93,7 +124,20 @@ export function ProjectPlanView() {
 
   return (
     <div className="space-y-10">
-      <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">Plan</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">Plan</h1>
+        {(hasPlan || Boolean(draft)) && (
+          <button
+            type="button"
+            onClick={copyMarkdown}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#2A2E39] bg-[#171A23] px-3.5 py-2 text-xs font-semibold text-[#B8A6FF] hover:border-[#B8A6FF]/60 hover:text-[#F5F2FA] transition cursor-pointer"
+            title="Copy tasks formatted for Discord channel or Canvas announcement"
+          >
+            <span>{copiedMd ? "✓" : "📋"}</span>
+            <span>{copiedMd ? "Copied for Discord / Canvas!" : "Copy for Discord / Canvas"}</span>
+          </button>
+        )}
+      </div>
 
       <p role="status" aria-live="polite" className="sr-only">
         {isGenerating ? "Drafting a plan" : draft ? "A plan draft is ready" : justAccepted ? "Plan saved" : ""}

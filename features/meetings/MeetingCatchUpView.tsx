@@ -11,6 +11,7 @@ import { SupportNote } from "@/features/care/SupportNote";
 import { ShareChoice } from "@/features/care/ShareChoice";
 import { WorthDiscussing } from "./WorthDiscussing";
 import { CatchUpPanel } from "./CatchUpPanel";
+import { playPop } from "@/lib/sound-fx";
 
 /**
  * Feature Owner: Shreya Rameshwar
@@ -69,10 +70,53 @@ export function MeetingCatchUpView() {
     ? meeting.attendeeIds.filter((id) => !absentMemberIds.includes(id))
     : [];
 
+  const [copiedDigest, setCopiedDigest] = useState(false);
+
   const handleReversal = () => {
     if (!meeting) return;
     removeMemberMeetingUpdates(CURRENT_MEMBER_ID, meeting.id);
     setSuccess(false);
+  };
+
+  const copyMeetingDigest = async () => {
+    if (!meeting) return;
+    const attendingNames = attendingIds.map((id) => getMemberById(id)?.name ?? id).join(", ") || "none yet";
+    const absentNames = absentMemberIds.map((id) => getMemberById(id)?.name ?? id).join(", ") || "none";
+    const agendaList = (agendaItems.length > 0 ? agendaItems : ["General check-in & blocker resolution"])
+      .map((item, idx) => `${idx + 1}. ${item}`)
+      .join("\n");
+    const updatesList = meetingUpdates.length > 0
+      ? meetingUpdates
+          .map((u) => {
+            const member = getMemberById(u.memberId);
+            return `- **${member?.name ?? "Teammate"}** (${u.type === "cant_attend" ? "Can't attend" : u.type}):\n  ${u.content}`;
+          })
+          .join("\n")
+      : "No async updates submitted yet.";
+
+    const digest = [
+      `# 🐊 Meeting Sync: ${meeting.title} — ${project.name}`,
+      `**Scheduled:** ${meeting.scheduledTime} (${meeting.durationMinutes} mins)`,
+      `**Attending:** ${attendingNames}`,
+      `**Can't Attend:** ${absentNames}`,
+      "",
+      "## Agenda",
+      agendaList,
+      "",
+      "## Teammate Check-Ins & Async Updates",
+      updatesList,
+      "",
+      "*Exported via gatorXecute · SFSU AI Group Coordinator*",
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(digest);
+      setCopiedDigest(true);
+      playPop();
+      setTimeout(() => setCopiedDigest(false), 2500);
+    } catch {
+      setCopiedDigest(false);
+    }
   };
 
   const post = (content: string) => {
@@ -189,33 +233,45 @@ export function MeetingCatchUpView() {
             </div>
           </div>
 
-          {!formOpen && (
-            <div className="shrink-0 flex flex-col items-start sm:items-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSuccess(false);
-                  setFormOpen(true);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1D202A] border border-[#D5B45C]/50 px-4 py-2.5 text-sm font-medium text-[#D5B45C] hover:bg-[#D5B45C]/10 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]"
-              >
-                {alreadyReported ? "Add another update" : "I can't make it"}
-              </button>
-              {alreadyReported && (
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[#B8A6FF]">✓ Absence recorded</span>
-                  <span className="text-[#2A2E39]">·</span>
-                  <button
-                    type="button"
-                    onClick={handleReversal}
-                    className="text-[#AAA5B4] underline hover:text-[#F5F2FA] transition cursor-pointer"
-                  >
-                    Actually, I can make it
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="shrink-0 flex flex-wrap sm:flex-col items-start sm:items-end gap-2.5">
+            <button
+              type="button"
+              onClick={copyMeetingDigest}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3.5 py-2 text-xs font-semibold text-[#B8A6FF] hover:border-[#B8A6FF]/60 hover:text-[#F5F2FA] transition cursor-pointer"
+              title="Copy meeting brief and attendance for Discord or Slack"
+            >
+              <span>{copiedDigest ? "✓" : "📋"}</span>
+              <span>{copiedDigest ? "Copied Sync Digest!" : "Copy Sync Digest"}</span>
+            </button>
+
+            {!formOpen && (
+              <div className="flex flex-col items-start sm:items-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSuccess(false);
+                    setFormOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#1D202A] border border-[#D5B45C]/50 px-4 py-2 text-sm font-medium text-[#D5B45C] hover:bg-[#D5B45C]/10 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]"
+                >
+                  {alreadyReported ? "Add another update" : "I can't make it"}
+                </button>
+                {alreadyReported && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[#B8A6FF]">✓ Absence recorded</span>
+                    <span className="text-[#2A2E39]">·</span>
+                    <button
+                      type="button"
+                      onClick={handleReversal}
+                      className="text-[#AAA5B4] underline hover:text-[#F5F2FA] transition cursor-pointer"
+                    >
+                      Actually, I can make it
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {success && (
@@ -338,6 +394,30 @@ export function MeetingCatchUpView() {
             </div>
           )}
           <WorthDiscussing project={project} meeting={meeting} onUse={setAgendaOverride} />
+        </div>
+
+        {/* SFSU J. Paul Leonard Library Study Pod Helper */}
+        <div className="rounded-xl border border-[#2A2E39] bg-[#12141C] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📍</span>
+              <span className="text-xs font-semibold text-[#D5B45C]">
+                SFSU Campus In-Person: J. Paul Leonard Library
+              </span>
+            </div>
+            <p className="text-xs text-[#AAA5B4] max-w-lg leading-relaxed">
+              Need a physical whiteboard and 4K display for your group sync? Reserve a 3rd or 4th floor collaborative study room with your SFSU ID.
+            </p>
+          </div>
+          <a
+            href="https://libcal.sfsu.edu/spaces"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 shrink-0 rounded-xl bg-[#1D202A] border border-[#2A2E39] px-3.5 py-2 text-xs font-medium text-[#F5F2FA] hover:border-[#D5B45C] hover:text-[#D5B45C] transition cursor-pointer"
+          >
+            <span>Book SFSU Study Pod</span>
+            <span>↗</span>
+          </a>
         </div>
 
         <CatchUpPanel project={project} meeting={meeting} memberId={CURRENT_MEMBER_ID} />

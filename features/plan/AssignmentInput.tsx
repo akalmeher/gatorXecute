@@ -132,6 +132,43 @@ export function AssignmentInput({ value, onChange, disabled }: AssignmentInputPr
           className="w-full rounded-xl border border-[#2A2E39] bg-[#171A23] px-4 py-3 text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60"
         />
       </div>
+
+      {/* 1-Click SFSU Assignment Presets */}
+      <div className="space-y-1.5 pt-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#AAA5B4]">
+          Quick SFSU Assignment Presets (1-Click Demo)
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            {
+              label: "CSC 648: Web App M2",
+              icon: "🟣",
+              text: "CSC 648 Group Web Application Milestone 2: Build frontend shell with Next.js and Tailwind, implement API endpoints for user sessions, develop scheduling overlap algorithm with automated tests, and prepare final slide deck for class demo. Due October 16, 2026.",
+            },
+            {
+              label: "ENG 300: Rover System",
+              icon: "🟡",
+              text: "ENG 300 Autonomous Rover System: CAD modeling for chassis, sensor calibration circuit and microcontroller firmware, simulation verification in Gazebo, and technical design review document. Due November 10, 2026.",
+            },
+            {
+              label: "BUS 690: Venture Pitch",
+              icon: "🟢",
+              text: "BUS 690 Strategic Venture Plan: Conduct competitive market analysis, build 3-year financial pro-forma projections, draft marketing go-to-market strategy, and assemble 10-slide investor pitch deck. Due October 28, 2026.",
+            },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange({ ...value, text: preset.text })}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:border-[#D5B45C] hover:bg-[#D5B45C]/10 transition active:scale-95 cursor-pointer"
+            >
+              <span>{preset.icon}</span>
+              <span>{preset.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

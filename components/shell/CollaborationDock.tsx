@@ -14,6 +14,8 @@ import { useProfile } from "@/features/profile/useProfile";
 import { encodeTeam } from "@/features/team/team-link";
 import { initialsOf, normalizeTags } from "@/features/profile/profile";
 import { encodeWorkspace } from "@/features/project/workspace-share";
+import { QrCodeSvg } from "@/components/ui/QrCodeSvg";
+import { isAudioMuted, playPop, toggleAudioMute } from "@/lib/sound-fx";
 
 /**
  * Feature Owner: Divij Anand & Ammar Almeher
@@ -93,6 +95,7 @@ export function CollaborationDock() {
   const [hubTab, setHubTab] = useState<"sync" | "account" | "project">("sync");
   const [copiedWorkspace, setCopiedWorkspace] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [muted, setMuted] = useState(() => isAudioMuted());
 
   // New Student Account Form State
   const [newAccName, setNewAccName] = useState("");
@@ -189,6 +192,7 @@ export function CollaborationDock() {
       const fullUrl = `${origin}${path}#workspace=${hash}`;
       await navigator.clipboard.writeText(fullUrl);
       setCopiedWorkspace(true);
+      playPop();
       setTimeout(() => setCopiedWorkspace(false), 3500);
     } catch {
       setCopiedWorkspace(false);
@@ -259,6 +263,7 @@ export function CollaborationDock() {
       const url = `${window.location.origin}/team#${hash}`;
       await navigator.clipboard.writeText(url);
       setCopiedLink(true);
+      playPop();
       setTimeout(() => setCopiedLink(false), 3000);
     } catch {
       setCopiedLink(false);
@@ -690,6 +695,34 @@ export function CollaborationDock() {
                       ✓ Paste into teammate&apos;s browser to sync everything instantly!
                     </p>
                   )}
+
+                  {/* Instant Mobile QR Code */}
+                  <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#171A23] border border-[#2A2E39] space-y-2">
+                    <p className="text-[11px] font-semibold text-[#F5F2FA]">📱 Scan QR Code to Open on Phone</p>
+                    <QrCodeSvg
+                      value={typeof window !== "undefined" ? `${window.location.origin}/dashboard` : "https://gatorxecute.sfsu.edu"}
+                      size={140}
+                    />
+                    <p className="text-[10px] text-[#AAA5B4] text-center max-w-[210px] leading-tight">
+                      Point iPhone or Android camera to test live mobile responsiveness instantly
+                    </p>
+                  </div>
+
+                  {/* Sound FX Toggle */}
+                  <div className="flex items-center justify-between pt-1 border-t border-[#2A2E39]">
+                    <span className="text-[11px] text-[#AAA5B4]">Tactile UI Audio</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = toggleAudioMute();
+                        setMuted(next);
+                        if (!next) playPop();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#2A2E39] bg-[#171A23] text-xs text-[#F5F2FA] hover:border-[#D5B45C] transition cursor-pointer"
+                    >
+                      <span>{muted ? "🔇 Sound Muted" : "🔊 Sound Active"}</span>
+                    </button>
+                  </div>
 
                   <div className="border-t border-[#2A2E39] pt-2">
                     <p className="text-[11px] text-[#AAA5B4]">Current Active Workspace:</p>

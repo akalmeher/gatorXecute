@@ -9,6 +9,7 @@ import { useProfile } from "@/features/profile/useProfile";
 import { projectProfileKey } from "@/features/profile/profile";
 import type { TaskStatus } from "@/types";
 import type { SkillsResponse } from "@/features/ai/skills";
+import { playPop } from "@/lib/sound-fx";
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: "todo", label: "To Do" },
@@ -55,6 +56,7 @@ export function DashboardView() {
       dependencies: [],
     });
 
+    playPop();
     setTaskTitle("");
     setTaskDesc("");
     setTaskOwnerId("");
@@ -383,9 +385,10 @@ export function DashboardView() {
                           <select
                             value={task.status}
                             aria-label={`Move ${task.title}`}
-                            onChange={(e) =>
-                              updateTaskStatus(task.id, e.target.value as TaskStatus)
-                            }
+                            onChange={(e) => {
+                              playPop();
+                              updateTaskStatus(task.id, e.target.value as TaskStatus);
+                            }}
                             className="w-[108px] shrink-0 rounded-lg border border-[#2A2E39] bg-[#171A23] px-2 py-1 text-xs text-[#AAA5B4] hover:text-[#F5F2FA] hover:border-[#B8A6FF]/40 focus:outline-none cursor-pointer"
                           >
                             <option value="todo">To Do</option>

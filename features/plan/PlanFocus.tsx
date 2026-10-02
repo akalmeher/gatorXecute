@@ -6,6 +6,7 @@ import type { useReplan } from "./useReplan";
 import { PROBLEM_PHRASE, applyPlanChanges, checkPlanChanges, findPlanProblems, needsAttention } from "./plan-health";
 import { describeWaitingOn, firstName, formatDay, orderSteps } from "./plan-display";
 import { toIsoDay, todayIsoDay } from "./plan-validation";
+import { playPop } from "@/lib/sound-fx";
 
 /**
  * Feature Owner: Divij Anand
@@ -65,6 +66,7 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
   };
 
   const markDone = (task: Task) => {
+    playPop();
     updateTaskStatus(task.id, "done");
     setNotice(`✓ ${task.title}`);
   };
@@ -80,6 +82,7 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
       setApplyIssues(issues);
       return;
     }
+    playPop();
     replaceTasks(applyPlanChanges(project.tasks, suggestion.changes));
     dismiss();
     setNotice("✓ Plan updated");

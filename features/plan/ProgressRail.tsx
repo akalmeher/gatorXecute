@@ -1,14 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { PlanStep } from "./plan-display";
 import { formatDay } from "./plan-display";
+import { playMilestoneChime, playTwinkle } from "@/lib/sound-fx";
 
 /**
  * Feature Owner: Divij Anand
  * The whole plan at a glance:
  * - Color gradient progression: Dull purple -> Radiant Royal Bright Purple -> SFSU Gold.
  * - Star Milestone: Scales up, spins, and twinkles with sparkles when all tasks are achieved.
+ * - Web Audio API victory chime triggers on milestone completion.
  * - Shape and label carry state, not color alone (✓ done, ● now, ‖ waiting, ○ later).
  */
 
@@ -50,6 +52,17 @@ export function ProgressRail({ steps, deadline }: { steps: PlanStep[]; deadline?
   const done = steps.filter((s) => s.state === "done").length;
   const allDone = total > 0 && done === total;
   const nowIndex = steps.findIndex((s) => s.state === "doing" || s.state === "ready");
+
+  const hasTriggeredChime = useRef(false);
+
+  useEffect(() => {
+    if (allDone && !hasTriggeredChime.current) {
+      hasTriggeredChime.current = true;
+      playMilestoneChime();
+    } else if (!allDone) {
+      hasTriggeredChime.current = false;
+    }
+  }, [allDone]);
 
   return (
     <div
@@ -197,12 +210,20 @@ export function ProgressRail({ steps, deadline }: { steps: PlanStep[]; deadline?
             )}
 
             {/* The Star Element */}
-            <span
-              aria-hidden
-              className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-500 shadow-md ${
+            <button
+              type="button"
+              onClick={() => {
+                if (allDone) {
+                  playMilestoneChime();
+                } else {
+                  playTwinkle();
+                }
+              }}
+              title={allDone ? "Milestone Achieved! 🎉 (Click to celebrate)" : "Milestone Target (Click to twinkle)"}
+              className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-500 shadow-md cursor-pointer ${
                 allDone
-                  ? "star-spin-twinkle bg-gradient-to-tr from-[#D5B45C] via-[#FFE082] to-[#FFF3B0] text-[#0F1117] ring-2 ring-[#FFE082]/90 ring-offset-2 ring-offset-[#0F1117]"
-                  : "bg-[#1D202A] text-[#D5B45C] border border-[#D5B45C]/40 hover:border-[#D5B45C] hover:scale-105"
+                  ? "star-spin-twinkle bg-gradient-to-tr from-[#D5B45C] via-[#FFE082] to-[#FFF3B0] text-[#0F1117] ring-2 ring-[#FFE082]/90 ring-offset-2 ring-offset-[#0F1117] hover:scale-110 active:scale-95"
+                  : "bg-[#1D202A] text-[#D5B45C] border border-[#D5B45C]/40 hover:border-[#D5B45C] hover:scale-105 active:scale-95"
               }`}
             >
               <svg
@@ -211,7 +232,7 @@ export function ProgressRail({ steps, deadline }: { steps: PlanStep[]; deadline?
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-            </span>
+            </button>
           </div>
         </li>
       </ol>
