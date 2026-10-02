@@ -3,20 +3,20 @@ import { MeetingCatchUpView } from "@/features/meetings/MeetingCatchUpView";
 
 export default function MeetingPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-          Meeting Coordination & Async Catch-Up
+    <div className="space-y-10">
+      <div className="space-y-2">
+        <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">
+          Meetings
         </h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Find common availability, review meeting briefs, and catch up asynchronously when conflicts arise.
+        <p className="text-base text-[#AAA5B4] max-w-2xl leading-relaxed">
+          Find time together, review agenda items, and quickly catch up if someone can&apos;t make it.
         </p>
       </div>
 
-      {/* Oscar Garcia's Availability Interface & Overlap Algorithm */}
+      {/* Best meeting time & availability matrix (Oscar) */}
       <AvailabilityView />
 
-      {/* Shreya Rameshwar's Meeting Brief, Can't Attend Flow & Catch-Up Interface */}
+      {/* Upcoming meeting, can't attend action, catch-up digest (Shreya) */}
       <MeetingCatchUpView />
     </div>
   );

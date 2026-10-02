@@ -6,66 +6,77 @@ import { useProject } from "@/context/ProjectContext";
 /**
  * Feature Owner: Oscar Garcia
  * Domain: Availability interface, schedule intersection, deterministic overlap algorithm.
- * Note: Lightweight placeholder establishing shared interfaces for the MVP demo foundation.
+ * Note: Workspace view for locating optimal team meeting windows without manual coordination.
  */
 export function AvailabilityView() {
   const { project } = useProject();
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-zinc-100 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-indigo-500/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-              Deterministic Scheduling
-            </span>
-            <span className="text-xs text-zinc-500 font-mono">
-              Feature Owner: Oscar Garcia
-            </span>
-          </div>
-          <h2 className="mt-2 text-xl font-bold tracking-tight text-zinc-900">
-            Find Optimal Meeting Time
+    <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8 space-y-6">
+      {/* Best Meeting Time Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#2A2E39] pb-6">
+        <div className="space-y-1">
+          <h2 className="font-heading text-2xl font-bold tracking-tight text-[#F5F2FA]">
+            Find a time everyone can meet
           </h2>
-          <p className="text-xs text-zinc-500">
-            Deterministic calendar intersection algorithm (no LLM required for slot math).
+          <p className="text-sm text-[#AAA5B4]">
+            Optimal time window based on everyone&apos;s open blocks this week.
           </p>
         </div>
 
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-          ✓ Optimal Overlap Found: <strong>Thu 3:30 PM – 4:15 PM</strong>
+        {/* Highlighted best time */}
+        <div className="rounded-xl border border-[#D5B45C]/40 bg-[#D5B45C]/10 px-4 py-3 flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D5B45C]/20 text-[#D5B45C] text-sm">
+            📅
+          </div>
+          <div>
+            <div className="text-[11px] font-medium text-[#D5B45C] leading-none">
+              Best time for everyone
+            </div>
+            <div className="font-heading text-base font-bold text-[#F5F2FA] mt-0.5">
+              Thursday • 3:30 PM – 4:15 PM
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Member Availability Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        {project.members.map((member) => {
-          const blocks = project.availability.filter((a) => a.memberId === member.id);
+      <div className="space-y-3">
+        <span className="text-xs font-medium text-[#AAA5B4]">
+          Team availability windows
+        </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {project.members.map((member) => {
+            const blocks = project.availability.filter((a) => a.memberId === member.id);
 
-          return (
-            <div
-              key={member.id}
-              className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 text-xs"
-            >
-              <div className="flex items-center gap-2 mb-2 font-semibold text-zinc-900">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--gator-purple)] text-white text-[10px]">
-                  {member.initials}
-                </span>
-                <span>{member.name.split(" ")[0]}</span>
-              </div>
-
-              <div className="space-y-1 text-zinc-600">
-                {blocks.map((block) => (
-                  <div key={block.id} className="flex justify-between text-[11px]">
-                    <span className="font-medium text-zinc-700">{block.dayOfWeek}</span>
-                    <span>
-                      {block.startTime} – {block.endTime}
-                    </span>
+            return (
+              <div
+                key={member.id}
+                className="rounded-xl border border-[#2A2E39] bg-[#1D202A] p-4 space-y-2.5"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#171A23] border border-[#2A2E39] font-heading text-[#B8A6FF] text-xs font-bold">
+                    {member.initials}
                   </div>
-                ))}
+                  <span className="font-heading text-sm font-semibold text-[#F5F2FA]">
+                    {member.name.split(" ")[0]}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs text-[#AAA5B4]">
+                  {blocks.map((block) => (
+                    <div key={block.id} className="flex justify-between text-xs">
+                      <span className="text-[#F5F2FA] font-medium">{block.dayOfWeek}</span>
+                      <span>
+                        {block.startTime} – {block.endTime}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

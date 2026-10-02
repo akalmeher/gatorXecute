@@ -1,145 +1,115 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
 
 /**
  * Feature Owner: Divij Anand
  * Domain: Gemini integration, AI task decomposition schemas, prompt pipelines.
- * Note: Lightweight placeholder establishing shared interfaces for the MVP demo foundation.
+ * Note: Workspace view for review and editing of team plans and work items.
  */
 export function ProjectPlanView() {
   const { project, getMemberById } = useProject();
 
   return (
-    <div className="space-y-8">
-      {/* AI Plan Banner */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                AI Decomposition
-              </span>
-              <span className="text-xs text-zinc-500 font-mono">
-                Model: Gemini 2.5 Pro (Mock Foundation)
-              </span>
-            </div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900">
-              AI Project Plan & Task Allocation
-            </h1>
-            <p className="mt-1 text-sm text-zinc-600">
-              Assignment prompt decomposed into dependent milestones with skill-matched recommendations.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--gator-purple)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-            >
-              Open Team Dashboard →
-            </Link>
-          </div>
+    <div className="space-y-10">
+      {/* Top Heading */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-[#1D202A] border border-[#2A2E39] px-2.5 py-1 text-xs font-medium text-[#B8A6FF]">
+            AI Suggested Breakdown
+          </span>
         </div>
-
-        {/* AI Rationale Notice */}
-        <div className="mt-4 rounded-lg bg-zinc-50 p-4 border border-zinc-200/80">
-          <div className="flex items-start gap-2.5">
-            <span className="text-sm">💡</span>
-            <div className="text-xs text-zinc-700 leading-relaxed">
-              <strong className="font-semibold text-zinc-900">Allocation Strategy:</strong> Tasks are balanced against teammates&apos; demonstrated strengths and stated learning goals. AI suggestions are non-binding and fully reassignable.
-            </div>
-          </div>
-        </div>
+        <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">
+          Plan
+        </h1>
+        <p className="text-base text-[#AAA5B4] max-w-2xl leading-relaxed">
+          Here is a balanced breakdown of the project into manageable steps, matched to your team&apos;s strengths and goals.
+        </p>
       </div>
 
-      {/* Decomposed Tasks Grid */}
+      {/* Task List Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">
-            Decomposed Milestones & Work Items ({project.tasks.length})
+          <h2 className="font-heading text-2xl font-semibold text-[#F5F2FA] tracking-tight">
+            What needs to get done
           </h2>
-          <span className="text-xs text-zinc-500">
-            Feature Owner: Divij Anand (Gemini Route)
+          <span className="text-sm text-[#AAA5B4]">
+            {project.tasks.length} items
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-4">
           {project.tasks.map((task) => {
             const owner = getMemberById(task.ownerId || task.suggestedOwnerId);
+
             return (
               <div
                 key={task.id}
-                className="rounded-lg border border-zinc-200 bg-white p-5 shadow-xs hover:border-zinc-300 transition-colors"
+                className="rounded-xl border border-[#2A2E39] bg-[#1D202A] p-6 space-y-4 hover:border-[#B8A6FF]/40 transition-colors"
               >
+                {/* Primary Row: Title, Owner, Status */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-semibold text-zinc-400">
-                        {task.id}
-                      </span>
-                      <h3 className="text-base font-bold text-zinc-900">
-                        {task.title}
-                      </h3>
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${
-                          task.status === "done"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : task.status === "in-progress"
-                            ? "bg-blue-100 text-blue-800"
-                            : task.status === "blocked"
-                            ? "bg-rose-100 text-rose-800"
-                            : "bg-zinc-100 text-zinc-700"
-                        }`}
-                      >
-                        {task.status}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-600">
+                  <div className="space-y-1.5 max-w-2xl">
+                    <h3 className="font-heading text-lg font-semibold text-[#F5F2FA] leading-snug">
+                      {task.title}
+                    </h3>
+                    <p className="text-sm text-[#AAA5B4] leading-relaxed">
                       {task.description}
                     </p>
                   </div>
 
-                  {/* Owner Badge */}
-                  <div className="shrink-0 flex items-center gap-2 rounded-md bg-zinc-50 px-3 py-1.5 border border-zinc-200">
-                    <span className="text-xs text-zinc-500">Owner:</span>
-                    <span className="text-xs font-semibold text-zinc-900">
-                      {owner ? owner.name : "Unassigned"}
-                    </span>
+                  {/* Owner pill */}
+                  <div className="shrink-0 flex items-center gap-2.5 rounded-xl bg-[#171A23] border border-[#2A2E39] px-3.5 py-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2A2E39] font-heading text-[#B8A6FF] font-bold text-xs">
+                      {owner ? owner.initials : "?"}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[11px] text-[#AAA5B4] leading-none">
+                        Assigned to
+                      </span>
+                      <span className="text-sm font-medium text-[#F5F2FA] leading-tight mt-0.5">
+                        {owner ? owner.name : "Unassigned"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Metadata & Dependencies */}
-                <div className="mt-4 pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-500">
-                  <div className="flex flex-wrap items-center gap-4">
-                    {task.dependencies.length > 0 && (
-                      <span className="flex items-center gap-1 font-mono">
-                        <strong className="text-zinc-700">Deps:</strong>{" "}
+                {/* Priority Metadata: Due date, effort, dependencies */}
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-sm text-[#AAA5B4] pt-2 border-t border-[#2A2E39]/60">
+                  {task.dueDate && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-[#AAA5B4]">Due</span>
+                      <span className="font-medium text-[#F5F2FA]">{task.dueDate}</span>
+                    </div>
+                  )}
+
+                  {task.estimatedMinutes && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-[#AAA5B4]">Est.</span>
+                      <span className="font-medium text-[#F5F2FA]">
+                        {Math.floor(task.estimatedMinutes / 60)}h{" "}
+                        {task.estimatedMinutes % 60 > 0 ? `${task.estimatedMinutes % 60}m` : ""}
+                      </span>
+                    </div>
+                  )}
+
+                  {task.dependencies.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-[#AAA5B4]">Needs:</span>
+                      <span className="rounded bg-[#171A23] border border-[#2A2E39] px-2 py-0.5 text-xs text-[#B8A6FF] font-mono">
                         {task.dependencies.join(", ")}
                       </span>
-                    )}
-                    {task.estimatedMinutes && (
-                      <span>
-                        <strong className="text-zinc-700">Est:</strong>{" "}
-                        {Math.floor(task.estimatedMinutes / 60)}h{" "}
-                        {task.estimatedMinutes % 60}m
-                      </span>
-                    )}
-                    {task.dueDate && (
-                      <span>
-                        <strong className="text-zinc-700">Due:</strong> {task.dueDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {task.assignmentReason && (
-                    <div className="text-zinc-600 italic">
-                      AI Reasoning: &quot;{task.assignmentReason}&quot;
                     </div>
                   )}
                 </div>
+
+                {/* Secondary AI Rationale */}
+                {task.assignmentReason && (
+                  <div className="pt-1 text-xs text-[#AAA5B4]/80 italic">
+                    Reason: {task.assignmentReason}
+                  </div>
+                )}
               </div>
             );
           })}

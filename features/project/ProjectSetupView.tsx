@@ -1,54 +1,54 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
 
 export function ProjectSetupView() {
   const { project } = useProject();
 
   return (
-    <div className="space-y-8">
-      {/* Project Overview Card */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-100 pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-[var(--gator-purple)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--gator-purple)]">
-                {project.course}
-              </span>
-              <span className="text-xs text-zinc-500 font-mono">
-                Target Deadline: {project.deadline}
-              </span>
-            </div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900">
-              {project.name}
-            </h1>
-          </div>
-          <Link
-            href="/plan"
-            className="inline-flex items-center justify-center rounded-lg bg-[var(--gator-purple)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-          >
-            Review AI Project Plan →
-          </Link>
-        </div>
+    <div className="space-y-10">
+      {/* Top Heading */}
+      <div className="space-y-2">
+        <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">
+          Project
+        </h1>
+        <p className="text-base text-[#AAA5B4] max-w-2xl leading-relaxed">
+          Your assignment, deadline, and team in one place.
+        </p>
+      </div>
 
-        <p className="mt-4 text-sm text-zinc-600 leading-relaxed max-w-3xl">
+      {/* Project Card: Assignment & Deadline */}
+      <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8 space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-md bg-[#1D202A] border border-[#2A2E39] px-2.5 py-1 text-xs font-medium text-[#B8A6FF]">
+            {project.course}
+          </span>
+          <span className="text-sm text-[#AAA5B4]">
+            Target submission: <strong className="text-[#F5F2FA] font-medium">{project.deadline}</strong>
+          </span>
+        </div>
+        <h2 className="font-heading text-2xl font-bold text-[#F5F2FA] tracking-tight">
+          {project.name}
+        </h2>
+        <p className="text-base text-[#AAA5B4] leading-relaxed max-w-3xl">
           {project.description}
         </p>
       </div>
 
       {/* Team Roster Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Project Team</h2>
-            <p className="text-xs text-zinc-500">
-              Collaborators, assigned roles, current skills, and stated learning goals.
+            <h2 className="font-heading text-2xl font-semibold text-[#F5F2FA] tracking-tight">
+              Team members
+            </h2>
+            <p className="text-sm text-[#AAA5B4] mt-0.5">
+              Everyone&apos;s strengths and what they want to practice on this project.
             </p>
           </div>
-          <span className="text-xs font-medium text-zinc-500">
-            {project.members.length} Members Active
+          <span className="text-sm text-[#AAA5B4]">
+            {project.members.length} teammates
           </span>
         </div>
 
@@ -56,33 +56,34 @@ export function ProjectSetupView() {
           {project.members.map((member) => (
             <div
               key={member.id}
-              className="flex flex-col justify-between rounded-lg border border-zinc-200 bg-white p-5 shadow-xs hover:border-zinc-300 transition-colors"
+              className="flex flex-col justify-between rounded-xl border border-[#2A2E39] bg-[#1D202A] p-6 space-y-5 hover:border-[#B8A6FF]/40 transition-colors"
             >
-              <div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--gator-purple)] text-white font-bold text-sm">
+              <div className="space-y-4">
+                {/* Member header */}
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#171A23] border border-[#2A2E39] font-heading text-[#B8A6FF] font-bold text-sm">
                     {member.initials}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-900 leading-snug">
+                    <h3 className="font-heading text-lg font-semibold text-[#F5F2FA] leading-snug">
                       {member.name}
                     </h3>
-                    <p className="text-xs font-medium text-[var(--gator-purple)]">
+                    <p className="text-sm text-[#AAA5B4]">
                       {member.role || "Team Member"}
                     </p>
                   </div>
                 </div>
 
-                {/* Skills */}
-                <div className="mt-4">
-                  <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-                    Demonstrated Skills
+                {/* Strengths */}
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium text-[#AAA5B4]">
+                    Strengths
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {member.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700"
+                        className="rounded-lg bg-[#171A23] border border-[#2A2E39] px-2.5 py-1 text-xs text-[#F5F2FA]"
                       >
                         {skill}
                       </span>
@@ -90,16 +91,16 @@ export function ProjectSetupView() {
                   </div>
                 </div>
 
-                {/* Wants to learn */}
-                <div className="mt-3">
-                  <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1.5">
-                    Learning Goals
+                {/* Interested in learning */}
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium text-[#AAA5B4]">
+                    Interested in learning
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {member.wantsToLearn.map((goal) => (
                       <span
                         key={goal}
-                        className="rounded-md bg-[var(--gator-gold)]/10 px-2 py-0.5 text-xs font-medium text-[var(--gator-gold)]"
+                        className="rounded-lg bg-[#D5B45C]/10 border border-[#D5B45C]/30 px-2.5 py-1 text-xs font-medium text-[#D5B45C]"
                       >
                         + {goal}
                       </span>
