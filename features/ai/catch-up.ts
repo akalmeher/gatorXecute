@@ -1,5 +1,5 @@
 import type { CatchUp, CatchUpAction, CatchUpCommitment, CatchUpRequest, CatchUpResponse } from "./catch-up-types";
-import { generateValidatedGeminiJson } from "./gemini";
+import { generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
 import {
   type ParseResult,
   asRecord,
@@ -266,7 +266,7 @@ export async function generateCatchUp(body: unknown): Promise<{ status: number; 
   }
   const request = parsed.value;
 
-  if (request.mode === "demo") {
+  if (request.mode === "demo" || isGeminiOffline()) {
     return { status: 200, body: { ok: true, source: "demo", catchUp: buildDemoCatchUp(request) } };
   }
 

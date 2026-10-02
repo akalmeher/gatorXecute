@@ -8,7 +8,7 @@ import type {
   DayOfWeek,
 } from "./availability-types";
 import { DEFAULT_GRID } from "./availability-types";
-import { generateValidatedGeminiJson } from "./gemini";
+import { generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
 import { type ParseResult, asRecord, isStringArray, nonEmptyString, parseMode } from "./ai-parse";
 import { ALL_DAYS, applyRules, blocksFromCells, cellsFromBlocks, describeBlocks, parseClock } from "./availability-compile";
 
@@ -191,7 +191,7 @@ export async function generateAvailability(body: unknown): Promise<{ status: num
   }
   const request = parsed.value;
 
-  if (request.mode === "demo") {
+  if (request.mode === "demo" || isGeminiOffline()) {
     const blocks = blocksFromCells(cellsFromBlocks(request.current, request.grid), request.memberId, request.grid);
     return {
       status: 200,

@@ -1,6 +1,6 @@
 import type { Task, TaskStatus } from "@/types";
 import type { ProgressInterpretation, ProgressUpdateRequest, ProgressUpdateResponse, StatusChange } from "./update-types";
-import { generateValidatedGeminiJson } from "@/features/ai/gemini";
+import { generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
 import { type ParseResult, asRecord, isStringArray, nonEmptyString, parseMode, parseTasks } from "@/features/ai/ai-parse";
 
 /**
@@ -165,7 +165,7 @@ export async function interpretProgressUpdate(body: unknown): Promise<{ status: 
   }
   const request = parsed.value;
 
-  if (request.mode === "demo") {
+  if (request.mode === "demo" || isGeminiOffline()) {
     return { status: 200, body: { ok: true, source: "demo", interpretation: buildDemoInterpretation(request) } };
   }
 

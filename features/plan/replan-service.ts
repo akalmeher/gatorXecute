@@ -1,7 +1,7 @@
 import type { Task } from "@/types";
 import type { PlanMember } from "./plan-types";
 import type { PlanChange, ReplanRequest, ReplanResponse, ReplanSuggestion } from "./replan-types";
-import { generateValidatedGeminiJson } from "@/features/ai/gemini";
+import { generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
 import {
   type ParseResult,
   asRecord,
@@ -269,7 +269,7 @@ export async function generateReplan(body: unknown): Promise<{ status: number; b
     today: todayIsoDay(),
   };
 
-  if (request.mode === "demo") {
+  if (request.mode === "demo" || isGeminiOffline()) {
     return { status: 200, body: { ok: true, source: "demo", suggestion: buildDemoReplan(request, context) } };
   }
 

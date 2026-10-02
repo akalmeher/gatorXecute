@@ -1,6 +1,6 @@
 import type { Task } from "@/types";
 import type { PlanErrorResponse, PlanMember, PlanResponse, PlanUnderstanding, WorkKind } from "./plan-types";
-import { type GeminiAttachment, generateValidatedGeminiJson } from "@/features/ai/gemini";
+import { type GeminiAttachment, generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
 import { PLAN_RESPONSE_SCHEMA, PLAN_SYSTEM_INSTRUCTION, buildPlanPrompt } from "./plan-prompt";
 import { buildDemoPlan } from "./plan-fallback";
 import {
@@ -101,7 +101,7 @@ export async function generatePlan(requestBody: unknown): Promise<PlanServiceRes
   const deadline = toIsoDay(project.deadline);
   const context: PlanValidationContext = { projectId: project.id, memberIds: project.members.map((m) => m.id), deadline };
 
-  if (mode === "demo") {
+  if (mode === "demo" || isGeminiOffline()) {
     const demo = validatePlanTasks(buildDemoPlan(project, today, deadline), context);
     if (!demo.ok) {
       return failure(500, { error: "gemini_invalid_output", message: "Demo plan failed validation.", issues: demo.issues });

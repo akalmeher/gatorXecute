@@ -5,7 +5,7 @@ import type {
   MeetingBriefRequest,
   MeetingBriefResponse,
 } from "./meeting-brief-types";
-import { generateValidatedGeminiJson } from "./gemini";
+import { generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
 import {
   type ParseResult,
   asRecord,
@@ -218,7 +218,7 @@ export async function generateMeetingBrief(body: unknown): Promise<{ status: num
   }
   const request = parsed.value;
 
-  if (request.mode === "demo") {
+  if (request.mode === "demo" || isGeminiOffline()) {
     return { status: 200, body: { ok: true, source: "demo", brief: buildDemoBrief(request) } };
   }
 
