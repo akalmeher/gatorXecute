@@ -1,4 +1,4 @@
-import type { CatchUp, CatchUpActionItem, CatchUpRequest, CatchUpResponse } from "./catch-up-types";
+import type { CatchUp, CatchUpAction, CatchUpCommitment, CatchUpRequest, CatchUpResponse } from "./catch-up-types";
 import { generateValidatedGeminiJson } from "./gemini";
 import {
   type ParseResult,
@@ -15,13 +15,13 @@ import {
 
 /**
  * Feature Owner: Divij Anand
- * SERVER ONLY. Missed-meeting catch-up for POST /api/catch-up.
+ * SERVER ONLY. "Here's what you missed" for POST /api/catch-up.
  */
 
-const NO_NOTES_MESSAGE = "No meeting notes were provided, so decisions from the meeting can't be confirmed.";
-const MAX_SUMMARY_CHARS = 800;
-const MAX_DECISIONS = 8;
-const MAX_ACTION_ITEMS = 10;
+const NO_NOTES_MESSAGE = "No meeting notes were shared, so nothing can be confirmed as decided.";
+const MAX_HEADLINE_CHARS = 160;
+const MAX_LIST_ITEMS = 6;
+const MAX_ITEM_CHARS = 240;
 
 type ParsedCatchUpRequest = Required<Omit<CatchUpRequest, "notes" | "absentMemberId">> &
   Pick<CatchUpRequest, "notes" | "absentMemberId">;
@@ -64,8 +64,14 @@ export function parseCatchUpRequest(body: unknown): ParseResult<ParsedCatchUpReq
   };
 }
 
-function hasNotes(request: ParsedCatchUpRequest) {
-  return Boolean(request.notes);
+function checkStringList(value: unknown, field: string, issues: string[]): string[] {
+  if (!isStringArray(value)) {
+    issues.push(`${field} must be a list of strings.`);
+    return [];
+  }
+  if (value.length > MAX_LIST_ITEMS) issues.push(`${field} has more than ${MAX_LIST_ITEMS} items.`);
+  if (value.some((item) => item.length > MAX_ITEM_CHARS)) issues.push(`Keep each ${field} item short.`);
+  return value.map((item) => item.trim()).filter(Boolean);
 }
 
 /** Validates Gemini output and enforces honesty rules that the prompt alone can't guarantee. */
@@ -75,71 +81,110 @@ export function validateCatchUp(raw: unknown, request: ParsedCatchUpRequest): Pa
   const memberIds = new Set(request.members.map((m) => m.id));
   const taskIds = new Set(request.tasks.map((t) => t.id));
 
-  if (!nonEmptyString(r.summary)) issues.push("summary is required.");
-  else if (r.summary.length > MAX_SUMMARY_CHARS) issues.push(`summary must be under ${MAX_SUMMARY_CHARS} characters.`);
+  const checkTask = (id: unknown, label: string) => {
+    if (!nonEmptyString(id)) return undefined;
+    if (!taskIds.has(id)) issues.push(`${label} references unknown work item "${id}".`);
+    return id;
+  };
 
-  if (!isStringArray(r.decisions)) issues.push("decisions must be a list of strings.");
-  else if (r.decisions.length > MAX_DECISIONS) issues.push(`Return at most ${MAX_DECISIONS} decisions.`);
-  else if (!hasNotes(request) && r.decisions.length > 0) {
-    issues.push("No meeting notes were provided, so decisions must be an empty list.");
+  if (!nonEmptyString(r.headline)) issues.push("headline is required.");
+  else if (r.headline.length > MAX_HEADLINE_CHARS) issues.push(`headline must be under ${MAX_HEADLINE_CHARS} characters.`);
+
+  const decided = checkStringList(r.decided, "decided", issues);
+  if (!request.notes && decided.length > 0) {
+    issues.push("No meeting notes were provided, so decided must be an empty list.");
   }
+  const changed = checkStringList(r.changed, "changed", issues);
+  const openQuestions = checkStringList(r.openQuestions, "openQuestions", issues);
+  const missingInfo = isStringArray(r.missingInfo) ? r.missingInfo.map((s) => s.trim()).filter(Boolean) : [];
+  if (!isStringArray(r.missingInfo)) issues.push("missingInfo must be a list of strings.");
 
-  const actionItems: CatchUpActionItem[] = [];
-  if (!Array.isArray(r.actionItems)) {
-    issues.push("actionItems must be a list.");
-  } else if (r.actionItems.length > MAX_ACTION_ITEMS) {
-    issues.push(`Return at most ${MAX_ACTION_ITEMS} action items.`);
+  const yourPart: CatchUpAction[] = [];
+  if (!Array.isArray(r.yourPart)) {
+    issues.push("yourPart must be a list.");
+  } else if (!request.absentMemberId && r.yourPart.length > 0) {
+    issues.push("No absent member was given, so yourPart must be an empty list.");
+  } else if (r.yourPart.length > MAX_LIST_ITEMS) {
+    issues.push(`yourPart has more than ${MAX_LIST_ITEMS} items.`);
   } else {
-    r.actionItems.forEach((rawItem, index) => {
+    r.yourPart.forEach((rawItem, index) => {
       const item = asRecord(rawItem);
       if (!nonEmptyString(item.text)) {
-        issues.push(`actionItems[${index}] needs text.`);
+        issues.push(`yourPart[${index}] needs text.`);
         return;
       }
-      const owner = nonEmptyString(item.suggestedOwnerId) ? item.suggestedOwnerId : undefined;
-      const task = nonEmptyString(item.relatedTaskId) ? item.relatedTaskId : undefined;
-      if (owner && !memberIds.has(owner)) issues.push(`actionItems[${index}] suggests unknown member "${owner}".`);
-      if (task && !taskIds.has(task)) issues.push(`actionItems[${index}] references unknown task "${task}".`);
-      actionItems.push({ text: item.text.trim(), suggestedOwnerId: owner, relatedTaskId: task });
+      yourPart.push({ text: item.text.trim(), relatedTaskId: checkTask(item.relatedTaskId, `yourPart[${index}]`) });
     });
   }
 
-  const missingInfo = isStringArray(r.missingInfo) ? r.missingInfo.filter((s) => s.trim()) : [];
-  if (r.missingInfo !== undefined && !isStringArray(r.missingInfo)) issues.push("missingInfo must be a list of strings.");
+  const commitments: CatchUpCommitment[] = [];
+  if (!Array.isArray(r.commitments)) {
+    issues.push("commitments must be a list.");
+  } else if (r.commitments.length > MAX_LIST_ITEMS * 2) {
+    issues.push(`commitments has more than ${MAX_LIST_ITEMS * 2} items.`);
+  } else {
+    r.commitments.forEach((rawItem, index) => {
+      const item = asRecord(rawItem);
+      if (!nonEmptyString(item.text)) {
+        issues.push(`commitments[${index}] needs text.`);
+        return;
+      }
+      const memberId = nonEmptyString(item.memberId) ? item.memberId : undefined;
+      if (memberId && !memberIds.has(memberId)) issues.push(`commitments[${index}] names unknown member "${memberId}".`);
+      commitments.push({
+        memberId,
+        text: item.text.trim(),
+        due: nonEmptyString(item.due) ? item.due.trim() : undefined,
+        relatedTaskId: checkTask(item.relatedTaskId, `commitments[${index}]`),
+      });
+    });
+  }
 
   if (issues.length > 0) return { ok: false, issues };
 
-  if (!hasNotes(request) && !missingInfo.some((s) => /notes/i.test(s))) missingInfo.unshift(NO_NOTES_MESSAGE);
+  if (!request.notes && !missingInfo.some((s) => /notes/i.test(s))) missingInfo.unshift(NO_NOTES_MESSAGE);
   return {
     ok: true,
     value: {
-      summary: (r.summary as string).trim(),
-      decisions: (r.decisions as string[]).map((d) => d.trim()).filter(Boolean),
-      actionItems,
+      headline: (r.headline as string).trim(),
+      decided,
+      changed,
+      yourPart,
+      commitments,
+      openQuestions,
       missingInfo,
     },
   };
 }
 
-const SYSTEM_INSTRUCTION = `You help a university student catch up on a team meeting they missed.
+const SYSTEM_INSTRUCTION = `You catch a university student up on a team meeting they missed. Write like a helpful teammate, not project-management software.
+
+Answer three questions, in order: What changed? What affects me? What do I need to do?
 
 Rules:
-- Use ONLY the information provided: meeting details, meeting notes, async updates, and task states. Never invent attendance, decisions, discussion, or completed work.
-- decisions: only decisions explicitly stated or clearly agreed in the meeting notes. If no notes are provided, return an empty list.
-- actionItems: concrete next steps grounded in the inputs. suggestedOwnerId must be a provided member id, and only when the inputs make the owner clear; otherwise omit it. relatedTaskId must be a provided task id, or omit it. These are suggestions the team will review.
-- summary: 2 to 4 plain sentences a student can read in under a minute. If an absent member is named, write it for them.
-- missingInfo: list anything a student would need that the inputs do not cover (for example missing notes, or blockers with no clear owner).
-- Neutral tone. Never judge, rank, or blame anyone for absence, effort, or productivity.`;
+- Use ONLY the meeting details, meeting notes, async updates, and work items provided. Never invent attendance, decisions, discussion, deadlines, or finished work.
+- headline: one short plain sentence that tells the absent student whether this affects them, e.g. "One decision was made. Your work hasn't changed." or "Two things changed, and one needs you."
+  If there are no meeting notes, the headline must say what is unknown (e.g. "No notes were shared, so nothing from the meeting is confirmed yet.") and must not claim that nothing changed.
+- decided: decisions explicitly stated or clearly agreed in the notes. If there are no notes, return an empty list.
+- changed: concrete changes to plans, dates, or who is doing what, stated in the notes or updates.
+- yourPart: only things the absent student should now do, written to them ("Add cinematography examples to the slides"). Empty if nothing needs them, or if no absent student is named.
+- commitments: who agreed to do what, as stated in the inputs. memberId must be a provided member id, or omit it when it was the whole team or unclear. due only if a time was stated.
+- openQuestions: things raised but not settled.
+- missingInfo: what the student would need that the inputs do not cover.
+- relatedTaskId may only be a provided work item id; omit it otherwise.
+- Plain language a student in any major understands. Do not use the words task, ticket, dependency, sprint, backlog, or blocked; say "waiting on", "needs to happen first", "next".
+- Keep every item to one short sentence. Leave a list empty rather than padding it.
+- Neutral tone. Describe the work, never judge or blame people for absence, effort, or speed.`;
 
 function buildPrompt(request: ParsedCatchUpRequest, previousIssues: string[]): string {
   const absent = request.members.find((m) => m.id === request.absentMemberId);
   const lines = [
     `Meeting (JSON):\n${JSON.stringify(request.meeting, null, 2)}`,
     `Members (JSON):\n${JSON.stringify(request.members, null, 2)}`,
-    `Catching up: ${absent ? `${absent.name} (${absent.id})` : "not specified"}`,
+    `Absent student: ${absent ? `${absent.name} (${absent.id})` : "not specified"}`,
     `Meeting notes:\n${request.notes ?? "(none provided)"}`,
     `Async updates (JSON):\n${JSON.stringify(describeUpdates(request.asyncUpdates, request.members), null, 2)}`,
-    `Tasks (JSON):\n${JSON.stringify(describeTasks(request.tasks, request.members), null, 2)}`,
+    `Work items (JSON):\n${JSON.stringify(describeTasks(request.tasks, request.members), null, 2)}`,
   ];
   if (previousIssues.length > 0) {
     lines.push(`Your previous answer was rejected. Fix every issue:\n- ${previousIssues.join("\n- ")}`);
@@ -148,55 +193,68 @@ function buildPrompt(request: ParsedCatchUpRequest, previousIssues: string[]): s
   return lines.join("\n\n");
 }
 
+const STRING_LIST = { type: "ARRAY", items: { type: "STRING" } };
+
 const RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
-    summary: { type: "STRING" },
-    decisions: { type: "ARRAY", items: { type: "STRING" } },
-    actionItems: {
+    headline: { type: "STRING" },
+    decided: STRING_LIST,
+    changed: STRING_LIST,
+    yourPart: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { text: { type: "STRING" }, relatedTaskId: { type: "STRING" } },
+        required: ["text"],
+      },
+    },
+    commitments: {
       type: "ARRAY",
       items: {
         type: "OBJECT",
         properties: {
+          memberId: { type: "STRING" },
           text: { type: "STRING" },
-          suggestedOwnerId: { type: "STRING" },
+          due: { type: "STRING" },
           relatedTaskId: { type: "STRING" },
         },
         required: ["text"],
       },
     },
-    missingInfo: { type: "ARRAY", items: { type: "STRING" } },
+    openQuestions: STRING_LIST,
+    missingInfo: STRING_LIST,
   },
-  required: ["summary", "decisions", "actionItems", "missingInfo"],
-  propertyOrdering: ["summary", "decisions", "actionItems", "missingInfo"],
+  required: ["headline", "decided", "changed", "yourPart", "commitments", "openQuestions", "missingInfo"],
+  propertyOrdering: ["headline", "decided", "changed", "yourPart", "commitments", "openQuestions", "missingInfo"],
 };
 
-/** Deterministic, clearly labeled fallback built only from task and update data. */
+/** Deterministic, clearly labeled fallback built only from work-item and update data. */
 export function buildDemoCatchUp(request: ParsedCatchUpRequest): CatchUp {
   const nameById = new Map(request.members.map((m) => [m.id, m.name]));
-  const blockedTasks = request.tasks.filter((t) => t.status === "blocked");
-  const blockerUpdates = request.asyncUpdates.filter((u) => u.type === "blocker");
+  const waiting = request.tasks.filter((t) => t.status === "blocked");
+  const yourOpenWork = request.absentMemberId
+    ? request.tasks.filter((t) => t.ownerId === request.absentMemberId && t.status !== "done")
+    : [];
 
-  const actionItems: CatchUpActionItem[] = [
-    ...blockedTasks.map((task) => ({
-      text: `Check what is blocking "${task.title}".`,
-      suggestedOwnerId: task.ownerId,
-      relatedTaskId: task.id,
-    })),
-    ...blockerUpdates.map((update) => ({
-      text: `Follow up on the blocker ${nameById.get(update.memberId) ?? "a teammate"} reported.`,
-    })),
-  ].slice(0, MAX_ACTION_ITEMS);
-
-  const missingInfo = ["Demo catch-up: this was assembled from task and update data, not generated by Gemini."];
+  const missingInfo = ["Demo catch-up: put together from the plan and updates, not written by Gemini."];
   if (!request.notes) missingInfo.push(NO_NOTES_MESSAGE);
 
   return {
-    summary:
-      `Demo summary for "${request.meeting.title}". ` +
-      `${request.asyncUpdates.length} async update(s) were posted and ${blockedTasks.length} task(s) are currently blocked.`,
-    decisions: [],
-    actionItems,
+    headline: yourOpenWork.length > 0
+      ? `Nothing new was confirmed. You still have ${yourOpenWork.length === 1 ? "one thing" : `${yourOpenWork.length} things`} in progress.`
+      : "Nothing new was confirmed while you were away.",
+    decided: [],
+    changed: [],
+    yourPart: yourOpenWork.slice(0, MAX_LIST_ITEMS).map((task) => ({
+      text: `Keep going on "${task.title}"${task.dueDate ? ` (due ${task.dueDate})` : ""}.`,
+      relatedTaskId: task.id,
+    })),
+    commitments: [],
+    openQuestions: waiting.slice(0, MAX_LIST_ITEMS).map((task) => {
+      const owner = task.ownerId ? nameById.get(task.ownerId) : undefined;
+      return `What does "${task.title}" need before ${owner ?? "someone"} can start?`;
+    }),
     missingInfo,
   };
 }

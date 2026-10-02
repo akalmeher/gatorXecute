@@ -7,6 +7,8 @@
  * Environment (.env.local, git-ignored):
  *   GEMINI_API_KEY  required for live generation (Google AI Studio key)
  *   GEMINI_MODEL    optional, defaults to DEFAULT_GEMINI_MODEL
+ *   GEMINI_THINKING_LEVEL  optional: minimal | low | medium | high, or "off" to
+ *                   send no thinkingConfig. Defaults to "low" for fast structured output.
  */
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -27,6 +29,11 @@ export class GeminiError extends Error {
 
 export function hasGeminiKey(): boolean {
   return Boolean(process.env.GEMINI_API_KEY?.trim());
+}
+
+function getThinkingConfig(): Record<string, string> | undefined {
+  const level = process.env.GEMINI_THINKING_LEVEL?.trim() || "low";
+  return level === "off" ? undefined : { thinkingLevel: level };
 }
 
 export function getGeminiModel(): string {
@@ -62,6 +69,7 @@ export async function generateGeminiJson({
   }
 
   const model = getGeminiModel();
+  const thinkingConfig = getThinkingConfig();
   let response: Response;
   try {
     response = await fetch(`${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent`, {
@@ -77,6 +85,7 @@ export async function generateGeminiJson({
           temperature,
           responseMimeType: "application/json",
           responseSchema,
+          ...(thinkingConfig ? { thinkingConfig } : {}),
         },
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

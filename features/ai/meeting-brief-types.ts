@@ -3,6 +3,9 @@ import type { AsyncUpdate, Meeting, Member, Task } from "@/types";
 /**
  * Feature Owner: Divij Anand (service) · Consumer: Shreya Rameshwar (meeting UI)
  * Contract for POST /api/meeting-brief. Safe to import from client components.
+ *
+ * Shaped around "Worth discussing": only the decisions and problems that need
+ * the group together, and an honest signal when the meeting may not be needed.
  */
 
 export interface MeetingBriefRequest {
@@ -14,17 +17,27 @@ export interface MeetingBriefRequest {
   members: Pick<Member, "id" | "name" | "role">[];
 }
 
-export interface MeetingAgendaItem {
+export type DiscussionKind = "decision" | "waiting" | "deadline" | "check-in";
+
+export interface DiscussionItem {
+  /** Short and human, e.g. "Choose the final film". */
   title: string;
+  /** One plain sentence on why it needs the group, e.g. "Maya can't start editing until this is settled." */
+  why: string;
+  kind: DiscussionKind;
   minutes: number;
   relatedTaskIds: string[];
 }
 
 export interface MeetingBrief {
-  /** One sentence: what this meeting should accomplish. */
-  goal: string;
-  /** Timeboxed agenda; minutes never exceed the meeting duration in total. */
-  agenda: MeetingAgendaItem[];
+  /** One sentence, e.g. "Three things are worth discussing." */
+  headline: string;
+  /** Most important first. Total minutes never exceed the meeting length. */
+  worthDiscussing: DiscussionItem[];
+  /** e.g. "Everything else is on track." */
+  everythingElse: string;
+  /** False when nothing needs the group live; the UI can offer to skip the meeting. */
+  meetingNeeded: boolean;
 }
 
 export type MeetingBriefResponse =
@@ -38,5 +51,5 @@ export type MeetingBriefResponse =
 
 /** Converts a brief into the canonical Meeting.agendaItems strings. */
 export function toAgendaItems(brief: MeetingBrief): string[] {
-  return brief.agenda.map((item) => `${item.title} (${item.minutes} min)`);
+  return brief.worthDiscussing.map((item) => item.title);
 }
