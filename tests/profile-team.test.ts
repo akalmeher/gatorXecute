@@ -146,3 +146,39 @@ test("matchSkillsToCourse intelligently matches Uni profile skills to class cont
   assert.ok(!cscMatches.includes("Video editing"));
 });
 
+test("workspace can be encoded and decoded for multi-laptop sync", async () => {
+  const { encodeWorkspace, decodeWorkspace } = await import("@/features/project/workspace-share");
+  const sampleProject = {
+    id: "proj-sync-test",
+    name: "SFSU Hackathon Prototype",
+    course: "CSC 648: Software Engineering",
+    description: "Multi-laptop synchronization demo",
+    deadline: "2026-10-15",
+    members: [
+      { id: "mem-1", name: "Ammar Almeher", role: "Integration Lead", skills: ["Next.js"], wantsToLearn: [], initials: "AA" },
+      { id: "mem-2", name: "Divij Anand", role: "AI Lead", skills: ["Gemini API"], wantsToLearn: [], initials: "DA" },
+    ],
+    tasks: [
+      { id: "t-1", projectId: "proj-sync-test", title: "Setup workspace sync", description: "Demo sync task", ownerId: "mem-2", status: "done" as const, dependencies: [] },
+    ],
+    meetings: [],
+    availability: [],
+    asyncUpdates: [],
+  };
+
+  const encoded = encodeWorkspace(sampleProject);
+  assert.ok(encoded.length > 0);
+
+  const decoded = decodeWorkspace(`#workspace=${encoded}`);
+  assert.ok(decoded);
+  assert.equal(decoded.name, sampleProject.name);
+  assert.equal(decoded.course, sampleProject.course);
+  assert.equal(decoded.members.length, 2);
+  assert.equal(decoded.members[0].name, "Ammar Almeher");
+  assert.equal(decoded.tasks[0].title, "Setup workspace sync");
+
+  // Invalid payload returns null safely
+  assert.equal(decodeWorkspace("#workspace=corrupted-junk-data"), null);
+  assert.equal(decodeWorkspace(""), null);
+});
+

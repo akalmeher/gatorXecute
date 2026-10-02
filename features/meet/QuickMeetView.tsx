@@ -22,6 +22,8 @@ import {
   newPersonId,
 } from "./meet-link";
 import { WhereField } from "./WhereField";
+import { useProfile } from "@/features/profile/useProfile";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
 
 /**
  * Feature Owner: Divij Anand (built on Oscar Garcia's grid and best-time logic)
@@ -65,6 +67,12 @@ export function QuickMeetView() {
   const [readBack, setReadBack] = useState<{ summary: string; lines: string[]; notes: string[] } | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { profile } = useProfile();
+  const { member } = useCurrentMember();
+
+  // Pull identity from Main Uni Profile (derived, pure)
+  const defaultName = member?.name || profile?.name || "";
+  const effectiveMyName = myName || defaultName;
 
   // Load the poll from the link, and again whenever a different link is opened
   // on this page (hash changes don't reload the page). Our own edits are ignored.
@@ -102,8 +110,8 @@ export function QuickMeetView() {
   const allBlocks = useMemo(() => poll.people.flatMap((p) => p.blocks), [poll.people]);
   const gridMembers = useMemo(() => {
     const list = poll.people.map(toMember);
-    return me ? list : [...list, toMember({ id: meId, name: myName || "You", blocks: [] })];
-  }, [poll.people, me, meId, myName]);
+    return me ? list : [...list, toMember({ id: meId, name: effectiveMyName || "You", blocks: [] })];
+  }, [poll.people, me, meId, effectiveMyName]);
 
   // Everyone in the poll counts, including people with no free times yet.
   const rec = useMemo(() => recommendMeeting(poll), [poll]);
@@ -126,7 +134,7 @@ export function QuickMeetView() {
   const setMyBlocks = (blocks: AvailabilityBlock[]) => {
     setCopied(false);
     setPoll((prev) => {
-      const name = myName.trim() || prev.people.find((p) => p.id === meId)?.name || "You";
+      const name = effectiveMyName.trim() || prev.people.find((p) => p.id === meId)?.name || "You";
       const exists = prev.people.some((p) => p.id === meId);
       const people = exists
         ? prev.people.map((p) => (p.id === meId ? { ...p, name, blocks } : p))
@@ -364,8 +372,15 @@ export function QuickMeetView() {
             </label>
           )}
           <label className="space-y-1">
-            <span className="text-sm text-[#AAA5B4]">Your name</span>
-            <input value={myName} onChange={(e) => renameMe(e.target.value)} maxLength={40} placeholder="Divij" className={fieldClass} />
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#AAA5B4]">Your name</span>
+              {(member || profile) && (
+                <span className="text-[11px] font-medium text-[#B8A6FF]">
+                  From Main Profile
+                </span>
+              )}
+            </div>
+            <input value={effectiveMyName} onChange={(e) => renameMe(e.target.value)} maxLength={40} placeholder="Divij" className={fieldClass} />
           </label>
           <label className="space-y-1">
             <span className="text-sm text-[#AAA5B4]">How long?</span>

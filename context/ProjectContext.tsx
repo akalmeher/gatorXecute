@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Project, Task, TaskStatus, AsyncUpdate, AvailabilityBlock, Member } from "@/types";
 import { INITIAL_DEMO_PROJECT } from "@/lib/mock-data";
+import { decodeWorkspace } from "@/features/project/workspace-share";
 
 interface ProjectContextValue {
   project: Project;
@@ -13,6 +14,8 @@ interface ProjectContextValue {
   replaceMembers: (members: Member[]) => void;
   /** A formed team starts its own project: fresh steps, meetings and updates; the deadline is kept until the plan sets one. */
   startProject: (details: { name: string; course?: string; members: Member[] }) => void;
+  loadProject: (project: Project) => void;
+  addMember: (member: Member) => void;
   updateMemberAvailability: (memberId: string, blocks: AvailabilityBlock[]) => void;
   addAsyncUpdate: (update: Omit<AsyncUpdate, "id" | "createdAt">) => void;
   getMemberById: (id?: string) => Project["members"][number] | undefined;
@@ -81,6 +84,42 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  // Support multi-device workspace sync via #workspace=... in URL
+  useEffect(() => {
+    const handleSync = () => {
+      if (typeof window === "undefined") return;
+      const hash = window.location.hash;
+      if (hash.includes("workspace=")) {
+        const decoded = decodeWorkspace(hash);
+        if (decoded) {
+          setProject(decoded);
+        }
+      }
+    };
+    handleSync();
+    window.addEventListener("hashchange", handleSync);
+    return () => window.removeEventListener("hashchange", handleSync);
+  }, []);
+
+  const loadProject = (newProject: Project) => {
+    setProject(newProject);
+  };
+
+  const addMember = (newMember: Member) => {
+    setProject((prev) => {
+      if (prev.members.some((m) => m.id === newMember.id)) {
+        return {
+          ...prev,
+          members: prev.members.map((m) => (m.id === newMember.id ? newMember : m)),
+        };
+      }
+      return {
+        ...prev,
+        members: [...prev.members, newMember],
+      };
+    });
+  };
+
   const addAsyncUpdate = (update: Omit<AsyncUpdate, "id" | "createdAt">) => {
     const newUpdate: AsyncUpdate = {
       ...update,
@@ -124,6 +163,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         replaceTasks,
         replaceMembers,
         startProject,
+        loadProject,
+        addMember,
         addAsyncUpdate,
         updateMemberAvailability,
         getMemberById,
