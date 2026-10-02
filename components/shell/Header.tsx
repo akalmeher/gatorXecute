@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 
 export function Header() {
@@ -12,20 +13,15 @@ export function Header() {
       <div className="page-container flex h-18 items-center justify-between">
         {/* Brand identity */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1D202A] border border-[#2A2E39] text-[#B8A6FF] shadow-inner transition-transform group-hover:scale-105">
-              <span className="font-heading text-base font-bold tracking-tight">
-                gX
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading text-xl font-bold tracking-tight text-[#F5F2FA] leading-tight">
-                gator<span className="text-[#B8A6FF]">Xecute</span>
-              </span>
-              <span className="text-xs text-[#AAA5B4] mt-0.5">
-                Student team coordination
-              </span>
-            </div>
+          <Link href="/" className="group flex items-center">
+            <Image
+              src="/gatorxecute-logo.svg"
+              alt="gatorXecute"
+              width={216}
+              height={51}
+              priority
+              className="w-[165px] sm:w-[216px] h-auto object-contain transition-opacity group-hover:opacity-90"
+            />
           </Link>
 
           <span className="hidden sm:inline-block h-4 w-px bg-[#2A2E39] mx-2" />

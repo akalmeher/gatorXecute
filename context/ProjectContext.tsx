@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Project, TaskStatus, AsyncUpdate } from "@/types";
+import { Project, Task, TaskStatus, AsyncUpdate } from "@/types";
 import { INITIAL_DEMO_PROJECT } from "@/lib/mock-data";
 
 interface ProjectContextValue {
   project: Project;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   updateTaskOwner: (taskId: string, ownerId: string) => void;
+  replaceTasks: (tasks: Task[]) => void;
   addAsyncUpdate: (update: Omit<AsyncUpdate, "id" | "createdAt">) => void;
   getMemberById: (id?: string) => Project["members"][number] | undefined;
 }
@@ -35,6 +36,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const replaceTasks = (newTasks: Task[]) => {
+    setProject((prev) => ({
+      ...prev,
+      tasks: newTasks,
+    }));
+  };
+
   const addAsyncUpdate = (update: Omit<AsyncUpdate, "id" | "createdAt">) => {
     const newUpdate: AsyncUpdate = {
       ...update,
@@ -58,6 +66,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         project,
         updateTaskStatus,
         updateTaskOwner,
+        replaceTasks,
         addAsyncUpdate,
         getMemberById,
       }}
