@@ -1,5 +1,5 @@
 import type { Task } from "@/types";
-import type { PlanErrorResponse, PlanResponse } from "./plan-types";
+import type { PlanErrorResponse, PlanMember, PlanResponse } from "./plan-types";
 import { generateValidatedGeminiJson } from "@/features/ai/gemini";
 import { PLAN_RESPONSE_SCHEMA, PLAN_SYSTEM_INSTRUCTION, buildPlanPrompt } from "./plan-prompt";
 import { buildDemoPlan } from "./plan-fallback";
@@ -13,6 +13,25 @@ import { parsePlanRequest, toIsoDay, todayIsoDay, validatePlanTasks } from "./pl
 export interface PlanServiceResult {
   status: number;
   body: PlanResponse;
+}
+
+/**
+ * Gemini names the learning goal a step practices. Keep it only when it is one
+ * of the owner's own goals, and surface it in the reason students read.
+ */
+function withPracticeNotes(rawTasks: unknown, members: PlanMember[]): unknown {
+  if (!Array.isArray(rawTasks)) return rawTasks;
+  const goalsById = new Map(members.map((m) => [m.id, m.wantsToLearn]));
+  return rawTasks.map((raw) => {
+    if (typeof raw !== "object" || raw === null) return raw;
+    const { practices, ...task } = raw as Record<string, unknown>;
+    const goal = (goalsById.get(task.suggestedOwnerId as string) ?? []).find(
+      (g) => typeof practices === "string" && g.toLowerCase() === practices.trim().toLowerCase()
+    );
+    const reason = typeof task.assignmentReason === "string" ? task.assignmentReason.trim() : "";
+    if (!goal || reason.toLowerCase().includes(goal.toLowerCase())) return task;
+    return { ...task, assignmentReason: `${reason} A chance to practice ${goal}.`.trim() };
+  });
 }
 
 function failure(status: number, body: Omit<PlanErrorResponse, "ok">): PlanServiceResult {
@@ -42,7 +61,8 @@ export async function generatePlan(requestBody: unknown): Promise<PlanServiceRes
     systemInstruction: PLAN_SYSTEM_INSTRUCTION,
     buildPrompt: (issues) => buildPlanPrompt(project, today, deadline, issues),
     responseSchema: PLAN_RESPONSE_SCHEMA,
-    validate: (data) => validatePlanTasks((data as { tasks?: unknown } | null)?.tasks, context),
+    validate: (data) =>
+      validatePlanTasks(withPracticeNotes((data as { tasks?: unknown } | null)?.tasks, project.members), context),
   });
 
   if (result.ok) {

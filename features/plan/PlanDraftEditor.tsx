@@ -45,7 +45,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
                   type="text"
                   value={task.title}
                   disabled={disabled}
-                  aria-label={`Task ${index + 1} title`}
+                  aria-label={`Step ${index + 1} title`}
                   onChange={(e) => onChange(task.id, { title: e.target.value })}
                   className={`${fieldClass} font-heading text-base font-semibold`}
                 />
@@ -53,7 +53,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
                   value={task.description}
                   disabled={disabled}
                   rows={2}
-                  aria-label={`Task ${index + 1} description`}
+                  aria-label={`Step ${index + 1} description`}
                   onChange={(e) => onChange(task.id, { description: e.target.value })}
                   className={`${fieldClass} resize-y leading-relaxed text-[#AAA5B4]`}
                 />
@@ -88,7 +88,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
                 />
               </label>
               <label className="space-y-1">
-                <span className={labelClass}>Estimate (hours)</span>
+                <span className={labelClass}>Time needed (hours)</span>
                 <input
                   type="number"
                   min={0.25}
@@ -110,7 +110,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
               <div className="min-w-0 space-y-1.5 text-xs text-[#AAA5B4]">
                 {task.dependencies.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span>Needs:</span>
+                    <span>Starts after:</span>
                     {task.dependencies.map((depId) => (
                       <span
                         key={depId}
@@ -123,7 +123,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
                 )}
                 {task.assignmentReason && (
                   <p className="italic text-[#AAA5B4]/80">
-                    {ownerChanged && suggested ? `Suggested ${suggested.name}: ` : "Why: "}
+                    {ownerChanged && suggested ? `Suggested ${suggested.name}: ` : ""}
                     {task.assignmentReason}
                   </p>
                 )}
@@ -132,7 +132,7 @@ export function PlanDraftEditor({ tasks, members, disabled, onChange, onRemove }
                 type="button"
                 disabled={disabled}
                 onClick={() => onRemove(task.id)}
-                aria-label={`Remove task ${index + 1}: ${task.title}`}
+                aria-label={`Remove step ${index + 1}: ${task.title}`}
                 className="shrink-0 rounded-lg px-2 py-1 text-xs text-[#AAA5B4] hover:text-[#F5F2FA] hover:bg-[#171A23] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer"
               >
                 Remove
