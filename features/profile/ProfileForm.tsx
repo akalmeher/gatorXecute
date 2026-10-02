@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import type { SkillsResponse } from "@/features/ai/skills";
 import { modelLabel } from "@/features/ai/model-label";
-import { MAX_NAME_CHARS, type Profile, SKILL_SUGGESTIONS, newProfileId, normalizeTags } from "./profile";
+import { MAX_NAME_CHARS, type Profile, SKILL_CATEGORIES, SKILL_SUGGESTIONS, newProfileId, normalizeTags } from "./profile";
 import { TagInput } from "./TagInput";
 
 /**
@@ -29,8 +29,10 @@ interface ProfileFormProps {
 export function ProfileForm({ initial, onSave, submitLabel = "Save profile" }: ProfileFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [major, setMajor] = useState(initial?.major ?? "");
+  const [bio, setBio] = useState(initial?.bio ?? "");
   const [skills, setSkills] = useState<string[]>(initial?.skills ?? []);
   const [wantsToLearn, setWantsToLearn] = useState<string[]>(initial?.wantsToLearn ?? []);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [about, setAbout] = useState("");
   const [reading, setReading] = useState(false);
   const [readNote, setReadNote] = useState<string | null>(null);
@@ -78,6 +80,7 @@ export function ProfileForm({ initial, onSave, submitLabel = "Save profile" }: P
           id: initial?.id ?? newProfileId(),
           name: name.trim().slice(0, MAX_NAME_CHARS),
           ...(major.trim() ? { major: major.trim() } : {}),
+          ...(bio.trim() ? { bio: bio.trim() } : {}),
           skills,
           wantsToLearn,
         });
@@ -89,10 +92,21 @@ export function ProfileForm({ initial, onSave, submitLabel = "Save profile" }: P
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_NAME_CHARS} required placeholder="Divij Anand" className={field} />
         </label>
         <label className="space-y-1">
-          <span className="text-sm text-[#AAA5B4]">Major (optional)</span>
-          <input value={major} onChange={(e) => setMajor(e.target.value)} maxLength={60} placeholder="Computer Science" className={field} />
+          <span className="text-sm text-[#AAA5B4]">Major or program</span>
+          <input value={major} onChange={(e) => setMajor(e.target.value)} maxLength={60} placeholder="Computer Science / Cinema minor" className={field} />
         </label>
       </div>
+
+      <label className="block space-y-1">
+        <span className="text-sm text-[#AAA5B4]">About you (optional)</span>
+        <input
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          maxLength={240}
+          placeholder="e.g. CS junior, passionate about UI/UX and film editing"
+          className={field}
+        />
+      </label>
 
       <div className="space-y-2">
         <label htmlFor="about" className="block text-sm text-[#AAA5B4]">
@@ -125,25 +139,58 @@ export function ProfileForm({ initial, onSave, submitLabel = "Save profile" }: P
         )}
       </div>
 
+      {/* Categorized suggestions */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-[#AAA5B4] mr-1">Browse catalogs:</span>
+          <button
+            type="button"
+            onClick={() => setSelectedCategory("all")}
+            className={`rounded-lg px-2.5 py-1 transition-colors ${
+              selectedCategory === "all" ? "bg-[#B8A6FF]/20 text-[#B8A6FF] font-medium" : "text-[#AAA5B4] hover:text-[#F5F2FA]"
+            }`}
+          >
+            All
+          </button>
+          {SKILL_CATEGORIES.map((cat) => (
+            <button
+              key={cat.name}
+              type="button"
+              onClick={() => setSelectedCategory(cat.name)}
+              className={`rounded-lg px-2.5 py-1 transition-colors ${
+                selectedCategory === cat.name ? "bg-[#B8A6FF]/20 text-[#B8A6FF] font-medium" : "text-[#AAA5B4] hover:text-[#F5F2FA]"
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <TagInput
         id="skills"
-        label="Things you can do"
-        hint="Anything counts: writing, editing, research, presenting, a tool you know."
+        label="Things you can do (Uni Profile Master Skills)"
+        hint="Everything you can contribute across all classes: coding, video editing, lab work, writing, presentation."
         tags={skills}
         onChange={setSkills}
-        suggestions={SKILL_SUGGESTIONS}
+        suggestions={
+          selectedCategory === "all"
+            ? SKILL_SUGGESTIONS
+            : SKILL_CATEGORIES.find((c) => c.name === selectedCategory)?.skills ?? SKILL_SUGGESTIONS
+        }
         placeholder="Type a skill and press Enter"
       />
+
       <TagInput
         id="learn"
         label="Things you'd like to learn (optional)"
         hint="The plan gives you a chance to practice one, with a teammate who knows it."
         tags={wantsToLearn}
         onChange={setWantsToLearn}
-        placeholder="e.g. Public speaking"
+        placeholder="e.g. Public speaking, Figma, Docker"
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 pt-2">
         <button type="submit" disabled={!canSave} className={primary}>
           {submitLabel}
         </button>

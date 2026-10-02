@@ -282,13 +282,53 @@ export function ProjectPlanView() {
         </section>
       ) : !isGenerating && !error ? (
         /* No plan yet */
-        <section className="space-y-5 py-4">
+        <section className="space-y-6 py-4">
           <div className="space-y-2">
             <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">No plan yet.</h2>
             <p className="text-lg text-[#AAA5B4] max-w-xl">
               I&apos;ll draft one from your assignment, deadline, and team. You can change anything before it&apos;s used.
             </p>
           </div>
+
+          {/* Team Active Skills for this Project */}
+          <div className="max-w-2xl rounded-2xl border border-[#2A2E39] bg-[#171A23] p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#D5B45C]">
+                Workspace Team & Active Skills ({project.course || project.name})
+              </span>
+              <Link href="/profile" className="text-xs font-medium text-[#B8A6FF] hover:underline">
+                Customize your profile →
+              </Link>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {project.members.map((m) => (
+                <div key={m.id} className="rounded-xl border border-[#2A2E39]/60 bg-[#12141C] p-2.5 text-xs">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-semibold text-[#F5F2FA]">{m.name}</span>
+                    <span className="text-[11px] text-[#B8A6FF] truncate max-w-[120px]">{m.role || "Member"}</span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {m.skills.length === 0 ? (
+                      <span className="text-[11px] text-[#AAA5B4]/70">General tasks</span>
+                    ) : (
+                      m.skills.slice(0, 3).map((s) => (
+                        <span key={s} className="rounded-md bg-[#B8A6FF]/15 px-1.5 py-0.5 text-[10px] text-[#F5F2FA]">
+                          {s}
+                        </span>
+                      ))
+                    )}
+                    {m.skills.length > 3 && (
+                      <span className="text-[10px] text-[#AAA5B4]">+{m.skills.length - 3}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-[#AAA5B4]">
+              Gemini will assign steps tailored specifically to these active project skills.
+            </p>
+          </div>
+
           <AssignmentInput value={assignment} onChange={setAssignment} />
           <button type="button" onClick={() => startDraft("live")} className={primaryButton}>
             Draft a plan

@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_TAGS, normalizeTags, profileToMember, sanitizeProfile } from "@/features/profile/profile";
+import {
+  MAX_TAGS,
+  matchSkillsToCourse,
+  normalizeTags,
+  profileToMember,
+  resolveMemberForProject,
+  sanitizeProfile,
+  sanitizeProjectProfile,
+} from "@/features/profile/profile";
 import { MAX_TEAM, decodeTeam, encodeTeam, joinTeam, skillCoverage } from "@/features/team/team-link";
 import { demoSkills, validateSkills } from "@/features/ai/skills";
 
@@ -61,6 +69,80 @@ test("skills from the AI are validated and normalized; the fallback only matches
   assert.equal(validateSkills({ skills: ["x".repeat(40)], wantsToLearn: [] }).ok, false);
   const ok = validateSkills({ skills: ["Writing", "writing", "Video editing"], wantsToLearn: ["Figma"] });
   assert.ok(ok.ok && ok.value.skills.length === 2);
-  assert.deepEqual(demoSkills("I edit videos for film class and I'm okay at writing").skills, ["Writing", "Video editing"]);
+  assert.deepEqual(demoSkills("I edit videos for film class and I'm okay at writing").skills, ["Video editing", "Writing"]);
   assert.deepEqual(demoSkills("I'm a business major").skills, []);
 });
+
+test("per-project profiles (Discord server profiles) sanitize and resolve correctly", () => {
+  const uni = {
+    id: "me-divij",
+    name: "Divij Anand",
+    major: "Computer Science",
+    bio: "Passionate about full-stack & video",
+    skills: ["TypeScript", "Next.js", "Video editing", "Scriptwriting", "Slide design"],
+    wantsToLearn: ["LLM Agents", "Cinematography"],
+  };
+
+  // When no project profile exists, resolveMemberForProject falls back to Uni profile
+  const baseMember = resolveMemberForProject(uni, null);
+  assert.equal(baseMember.role, "Computer Science");
+  assert.deepEqual(baseMember.skills, uni.skills);
+  assert.deepEqual(baseMember.wantsToLearn, uni.wantsToLearn);
+
+  // In CINE 211 Cinema Presentation: only creative & media skills are active
+  const cinemaProjectProfile = sanitizeProjectProfile({
+    projectId: "proj-cine-211",
+    role: "Lead Editor & Storyboarder",
+    activeSkills: ["Video editing", "Scriptwriting", "Slide design"],
+    wantsToLearn: ["Cinematography"],
+  })!;
+  assert.ok(cinemaProjectProfile);
+  assert.equal(cinemaProjectProfile.role, "Lead Editor & Storyboarder");
+
+  const cinemaMember = resolveMemberForProject(uni, cinemaProjectProfile);
+  assert.equal(cinemaMember.name, "Divij Anand");
+  assert.equal(cinemaMember.role, "Lead Editor & Storyboarder");
+  // Tech skills like TypeScript and Next.js are filtered out for the cinema class
+  assert.deepEqual(cinemaMember.skills, ["Video editing", "Scriptwriting", "Slide design"]);
+  assert.deepEqual(cinemaMember.wantsToLearn, ["Cinematography"]);
+
+  // In CSC 648 Software Engineering: only tech skills are active
+  const cscProjectProfile = sanitizeProjectProfile({
+    projectId: "proj-csc-648",
+    role: "Backend Architect",
+    activeSkills: ["TypeScript", "Next.js"],
+    wantsToLearn: ["LLM Agents"],
+  })!;
+  const cscMember = resolveMemberForProject(uni, cscProjectProfile);
+  assert.equal(cscMember.role, "Backend Architect");
+  assert.deepEqual(cscMember.skills, ["TypeScript", "Next.js"]);
+  assert.deepEqual(cscMember.wantsToLearn, ["LLM Agents"]);
+});
+
+test("matchSkillsToCourse intelligently matches Uni profile skills to class context", () => {
+  const studentSkills = [
+    "TypeScript",
+    "Next.js",
+    "Database Schema",
+    "Video editing",
+    "Scriptwriting",
+    "Slide design",
+    "Presenting",
+    "Lab work",
+    "Statistics",
+  ];
+
+  // In CINE 211
+  const cineMatches = matchSkillsToCourse("CINE 211: Cinema Presentation", studentSkills);
+  assert.ok(cineMatches.includes("Video editing"));
+  assert.ok(cineMatches.includes("Scriptwriting"));
+  assert.ok(!cineMatches.includes("Database Schema"));
+
+  // In CSC 648
+  const cscMatches = matchSkillsToCourse("CSC 648: Software Engineering", studentSkills);
+  assert.ok(cscMatches.includes("TypeScript"));
+  assert.ok(cscMatches.includes("Next.js"));
+  assert.ok(cscMatches.includes("Database Schema"));
+  assert.ok(!cscMatches.includes("Video editing"));
+});
+
