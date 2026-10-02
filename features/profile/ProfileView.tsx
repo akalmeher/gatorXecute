@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
-import { type Profile, type ProjectProfile, resolveMemberForProject } from "./profile";
+import { type Profile, type ProjectProfile, projectProfileKey, resolveMemberForProject } from "./profile";
 import { ProfileForm } from "./ProfileForm";
 import { ProjectProfileEditor } from "./ProjectProfileEditor";
 import { useProfile } from "./useProfile";
@@ -28,7 +28,7 @@ export function ProfileView() {
   const saveUni = (next: Profile) => {
     saveProfile(next);
     // Sync with project members using existing project profile if present
-    const projectProf = getProjectProfile(project.id);
+    const projectProf = getProjectProfile(projectProfileKey(project));
     const member = resolveMemberForProject(next, projectProf);
     if (project.members.some((m) => m.id === next.id)) {
       replaceMembers(project.members.map((m) => (m.id === next.id ? member : m)));
@@ -49,7 +49,7 @@ export function ProfileView() {
     setSavedMessage(`Project profile saved for ${project.course || project.name}. AI tasks and teammates will use these active skills.`);
   };
 
-  const currentProjectProfile = getProjectProfile(project.id);
+  const currentProjectProfile = getProjectProfile(projectProfileKey(project));
 
   return (
     <div className="max-w-4xl space-y-8">

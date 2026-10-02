@@ -8,7 +8,14 @@ import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { useProfile } from "@/features/profile/useProfile";
 import { ProfileForm } from "@/features/profile/ProfileForm";
-import { type Profile, initialsOf, profileToMember, resolveMemberForProject, sanitizeProfile } from "@/features/profile/profile";
+import {
+  type Profile,
+  initialsOf,
+  profileForProject,
+  profileToMember,
+  projectProfileKey,
+  sanitizeProfile,
+} from "@/features/profile/profile";
 import { MAX_TEAM, type Team, decodeTeam, encodeTeam, joinTeam, skillCoverage } from "./team-link";
 
 /**
@@ -121,6 +128,11 @@ export function TeamView() {
 
   const inTeam = Boolean(profile && team?.members.some((m) => m.id === profile.id));
   const full = Boolean(team && team.members.length >= MAX_TEAM);
+  // Your "server profile" for this team: only what's relevant to this class goes in the link.
+  const myEntry =
+    profile && team
+      ? profileForProject(profile, getProjectProfile(projectProfileKey(team)), `${team.course ?? ""} ${team.name}`)
+      : null;
 
   const copyLink = async () => {
     try {
@@ -134,11 +146,7 @@ export function TeamView() {
 
   const planWithTeam = () => {
     if (!team || !profile) return;
-    const projectKey = team.course || team.name;
-    const projectProf = getProjectProfile(projectKey);
-    const members = team.members.map((m) =>
-      m.id === profile.id ? resolveMemberForProject(profile, projectProf) : profileToMember(m)
-    );
+    const members = team.members.map((m) => (m.id === profile.id ? profileToMember(myEntry!) : profileToMember(m)));
     startProject({ name: team.name, course: team.course, members });
     setCurrentMember(profile.id);
     router.push("/plan");
@@ -250,7 +258,9 @@ export function TeamView() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            setTeam({ name: name.trim(), ...(course.trim() ? { course: course.trim() } : {}), members: [profile] });
+            const details = { name: name.trim(), ...(course.trim() ? { course: course.trim() } : {}) };
+            const me = profileForProject(profile, getProjectProfile(projectProfileKey(details)), `${details.course ?? ""} ${details.name}`);
+            setTeam({ ...details, members: [me] });
           }}
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -338,10 +348,20 @@ export function TeamView() {
       {/* Primary Action Buttons (Golden & Lavender) */}
       <section className="flex flex-wrap items-center gap-3">
         {!inTeam ? (
-          <button type="button" onClick={() => setTeam(joinTeam(team, profile))} disabled={full} className={primary}>
+          <button type="button" onClick={() => myEntry && setTeam(joinTeam(team, myEntry))} disabled={full} className={primary}>
             {full ? "This team is full" : `Join as ${first(profile.name)}`}
           </button>
-        ) : (
+        ) : null}
+        {!inTeam && myEntry && !full && (
+          <span className="text-xs text-[#AAA5B4]">
+            You&apos;ll join with {myEntry.skills.length > 0 ? myEntry.skills.join(", ") : "no skills listed"}, picked for{" "}
+            {team.course || team.name}.{" "}
+            <Link href="/profile" className="text-[#B8A6FF] underline-offset-4 hover:underline">
+              Change
+            </Link>
+          </span>
+        )}
+        {inTeam && (
           <>
             <button
               type="button"
@@ -578,13 +598,7 @@ export function TeamView() {
             , then{" "}
             <button
               type="button"
-              onClick={() => {
-                const projectProf = getProjectProfile(team.course || team.name);
-                const active = projectProf && projectProf.activeSkills.length > 0 ? projectProf.activeSkills : profile.skills;
-                const role = projectProf?.role || profile.major;
-                const updatedMe = { ...profile, ...(role ? { major: role } : {}), skills: active };
-                setTeam(joinTeam(team, updatedMe));
-              }}
+              onClick={() => myEntry && setTeam(joinTeam(team, myEntry))}
               className="text-[#D5B45C] underline-offset-4 hover:underline cursor-pointer font-medium"
             >
               refresh your entry

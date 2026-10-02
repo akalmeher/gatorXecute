@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { useProfile } from "@/features/profile/useProfile";
+import { projectProfileKey } from "@/features/profile/profile";
 import type { TaskStatus } from "@/types";
 import type { SkillsResponse } from "@/features/ai/skills";
 
@@ -21,7 +22,7 @@ export function DashboardView() {
   const { member: me } = useCurrentMember();
   const { profile, getProjectProfile, saveProjectProfile } = useProfile();
 
-  const projectKey = project.course || project.name || "DefaultProject";
+  const projectKey = projectProfileKey(project);
   const existingProjectProfile = getProjectProfile(projectKey);
 
   // Natural language per-task profile activation state
@@ -56,11 +57,8 @@ export function DashboardView() {
 
       const skills = data.result.skills;
       const wantsToLearn = data.result.wantsToLearn;
-      // Infer a role title from skills or use major
-      const inferredRole =
-        skills.length > 0
-          ? `${skills[0]} Specialist`
-          : me?.role || profile?.major || "Team Member";
+      // Keep the student's own role or major; never invent a title from their skills.
+      const inferredRole = existingProjectProfile?.role || me?.role || profile?.major || "Team Member";
 
       // Save to Per-Task Profile storage
       saveProjectProfile({

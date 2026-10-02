@@ -182,3 +182,25 @@ test("workspace can be encoded and decoded for multi-laptop sync", async () => {
   assert.equal(decodeWorkspace(""), null);
 });
 
+
+test("course matching uses whole words (Physics isn't CS, 'to' doesn't match Photoshop)", () => {
+  const skills = ["TypeScript", "Backend", "Video editing", "Storyboarding", "Photoshop", "Lab work"];
+  assert.deepEqual(matchSkillsToCourse("PHYS 220: Physics Lab", skills), ["Lab work"]);
+  assert.deepEqual(matchSkillsToCourse("Intro to Film", skills), ["Video editing", "Storyboarding"]);
+  assert.deepEqual(matchSkillsToCourse("Python for Data Science", ["Python", "Writing"]), ["Python"]);
+  assert.deepEqual(matchSkillsToCourse("CINE 340 Cinema presentation", ["Presenting", "Statistics"]), ["Presenting"]);
+});
+
+test("one key per class, and joining shares only what fits that class", async () => {
+  const { projectProfileKey, profileForProject } = await import("@/features/profile/profile");
+  assert.equal(projectProfileKey({ course: "CINE 340", name: "Cinema presentation" }), "CINE 340");
+  assert.equal(projectProfileKey({ course: "", name: "Cinema presentation" }), "Cinema presentation");
+  const uni = { id: "me-d", name: "Divij", skills: ["TypeScript", "Video editing", "Scriptwriting"], wantsToLearn: [] };
+  // No class profile yet: Uni skills that fit the class.
+  assert.deepEqual(profileForProject(uni, null, "CINE 340 Cinema presentation").skills, ["Video editing", "Scriptwriting"]);
+  // Nothing fits: share everything rather than nothing.
+  assert.deepEqual(profileForProject(uni, null, "Team Alpha").skills, uni.skills);
+  // A saved class profile wins, and its role travels as the role in this team.
+  const p = profileForProject(uni, { projectId: "CINE 340", role: "Editor", activeSkills: ["Video editing"], wantsToLearn: [] }, "CINE 340");
+  assert.deepEqual([p.major, p.skills], ["Editor", ["Video editing"]]);
+});

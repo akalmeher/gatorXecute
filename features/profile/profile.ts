@@ -145,6 +145,28 @@ export function sanitizeProjectProfile(raw: unknown): ProjectProfile | null {
   };
 }
 
+/** One key per class or team, like a Discord server: the class code, else the project name. */
+export function projectProfileKey(p: { course?: string; name?: string }): string {
+  return (p.course?.trim() || p.name?.trim() || "project").slice(0, 80);
+}
+
+/**
+ * What a person brings to one class or team (their "server profile"): their
+ * saved profile for it, else the Uni skills that fit the class, else all of them.
+ */
+export function profileForProject(profile: Profile, projectProfile: ProjectProfile | null | undefined, courseOrName: string): Profile {
+  if (projectProfile) {
+    return {
+      ...profile,
+      ...(projectProfile.role ? { major: projectProfile.role } : {}),
+      skills: projectProfile.activeSkills.length > 0 ? projectProfile.activeSkills : profile.skills,
+      wantsToLearn: projectProfile.wantsToLearn.length > 0 ? projectProfile.wantsToLearn : profile.wantsToLearn,
+    };
+  }
+  const fit = matchSkillsToCourse(courseOrName, profile.skills);
+  return { ...profile, skills: fit.length > 0 ? fit : profile.skills };
+}
+
 export function profileToMember(profile: Profile): Member {
   return {
     id: profile.id,
@@ -176,41 +198,36 @@ export function resolveMemberForProject(profile: Profile, projectProfile?: Proje
  * Intelligent helper to suggest relevant skills from a student's master Uni profile
  * based on the course code or project name (e.g. CINE 211 vs CSC 648).
  */
+// Whole words only: "physics" must not match "cs", "start" must not match "art".
+const COURSE_AREAS: { category: string; pattern: RegExp }[] = [
+  { category: "Cinema & Media", pattern: /\b(cine\w*|film\w*|media|video\w*|acting|direct\w*|animation|bect\w*)\b/ },
+  { category: "CS & Tech", pattern: /\b(csc|cs|software|engineer\w*|coding|code|apps?|web|database\w*|dev\w*|tech\w*|algorithms?|computer\w*)\b/ },
+  { category: "Design & UX", pattern: /\b(design\w*|ui|ux|figma|graphic\w*|visual\w*|art|arts|dai|presentation\w*)\b/ },
+  { category: "Business & Comms", pattern: /\b(present\w*|speech|bus\w*|mgmt|management|econ\w*|market\w*|pitch\w*|entrepreneur\w*|fin\w*|comm\w*)\b/ },
+  { category: "Writing & Research", pattern: /\b(engl?|english|lit\w*|writ\w*|essays?|humanities|history|hist|phil\w*|reports?|research)\b/ },
+  { category: "Science & Lab", pattern: /\b(bio\w*|chem\w*|phys\w*|labs?|stat\w*|math\w*|data|psy\w*|neuro\w*)\b/ },
+];
+
+/**
+ * Suggests which of a student's Uni-profile skills fit a class, from its code
+ * or name (CINE 211 → editing, not TypeScript). A starting point the student
+ * edits; it says nothing about how good anyone is.
+ */
 export function matchSkillsToCourse(courseOrName: string, candidateSkills: string[]): string[] {
   const text = courseOrName.toLowerCase();
   const matched = new Set<string>();
 
-  const isCinema = /cine|film|media|video|cinema|acting|directing|animation/.test(text);
-  const isCS = /csc|cs|software|engineer|code|app|web|database|dev|tech|algorithm/.test(text);
-  const isDesign = /design|ui|ux|figma|graphic|visual|art|presentation/.test(text);
-  const isBusiness = /bus|mgmt|econ|market|pitch|entrepreneur|fin|comm/.test(text);
-  const isWriting = /eng|lit|write|essay|humanities|history|philosophy|report/.test(text);
-  const isScience = /bio|chem|phys|lab|stat|math|data|psych|neuro/.test(text);
-
-  for (const cat of SKILL_CATEGORIES) {
-    let matchesCat = false;
-    if (isCinema && cat.name === "Cinema & Media") matchesCat = true;
-    if (isCS && cat.name === "CS & Tech") matchesCat = true;
-    if (isDesign && cat.name === "Design & UX") matchesCat = true;
-    if (isBusiness && cat.name === "Business & Comms") matchesCat = true;
-    if (isWriting && cat.name === "Writing & Research") matchesCat = true;
-    if (isScience && cat.name === "Science & Lab") matchesCat = true;
-
-    if (matchesCat) {
-      const catLower = new Set(cat.skills.map((s) => s.toLowerCase()));
-      for (const s of candidateSkills) {
-        if (catLower.has(s.toLowerCase())) matched.add(s);
-      }
-    }
+  for (const area of COURSE_AREAS) {
+    if (!area.pattern.test(text)) continue;
+    const skills = new Set(SKILL_CATEGORIES.find((c) => c.name === area.category)?.skills.map((s) => s.toLowerCase()) ?? []);
+    for (const skill of candidateSkills) if (skills.has(skill.toLowerCase())) matched.add(skill);
   }
 
-  // Also match any direct keyword overlap
+  // A skill named in the class title ("Python for Data Science" → Python). Whole words of 4+ letters only.
+  const words = new Set(text.split(/[^a-z]+/).filter((w) => w.length >= 4));
   for (const skill of candidateSkills) {
-    const sLower = skill.toLowerCase();
-    if (text.includes(sLower) || (sLower.length >= 4 && text.split(/\s+/).some((w) => sLower.includes(w) || w.includes(sLower)))) {
-      matched.add(skill);
-    }
+    if (skill.toLowerCase().split(/[^a-z]+/).some((w) => w.length >= 4 && words.has(w))) matched.add(skill);
   }
 
-  return Array.from(matched);
+  return candidateSkills.filter((s) => matched.has(s));
 }

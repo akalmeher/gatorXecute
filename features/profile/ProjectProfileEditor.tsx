@@ -8,6 +8,7 @@ import {
   initialsOf,
   matchSkillsToCourse,
   normalizeTags,
+  projectProfileKey,
 } from "./profile";
 import { TagInput } from "./TagInput";
 
@@ -73,7 +74,7 @@ export function ProjectProfileEditor({ profile, project, initial, onSave }: Proj
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      projectId: project.id,
+      projectId: projectProfileKey(project),
       role: role.trim(),
       activeSkills,
       wantsToLearn,
