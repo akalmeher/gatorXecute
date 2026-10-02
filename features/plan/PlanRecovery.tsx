@@ -88,7 +88,9 @@ export function PlanRecovery({ project, replaceTasks }: PlanRecoveryProps) {
 
         {!suggestion.onTrack && (
           <div className="space-y-3">
-            <p className="text-sm text-[#AAA5B4]">I found a way to keep things moving:</p>
+            <p className="text-sm text-[#AAA5B4]">
+              {suggestion.changes.length > 0 ? "I found a way to keep things moving:" : "This one is best settled together:"}
+            </p>
             <p className="text-lg font-semibold text-[#F5F2FA]">{suggestion.proposal}</p>
             <ul className="space-y-2">
               {suggestion.changes.map((change) => {
@@ -127,10 +129,17 @@ export function PlanRecovery({ project, replaceTasks }: PlanRecoveryProps) {
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          {suggestion.onTrack ? (
-            <button type="button" onClick={handleKeep} className={primaryButton}>
-              Got it
-            </button>
+          {suggestion.onTrack || suggestion.changes.length === 0 ? (
+            <>
+              <button type="button" onClick={handleKeep} className={primaryButton}>
+                Got it
+              </button>
+              {!suggestion.onTrack && (
+                <button type="button" onClick={() => find({ another: true, mode: source === "demo" ? "demo" : "live" })} className={secondaryButton}>
+                  See another option
+                </button>
+              )}
+            </>
           ) : (
             <>
               <button type="button" onClick={handleUse} className={primaryButton}>

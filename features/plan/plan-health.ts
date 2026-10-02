@@ -74,10 +74,14 @@ export function applyPlanChanges(tasks: Task[], changes: PlanChange[]): Task[] {
   return tasks.map((task) => {
     const change = byId.get(task.id);
     if (!change) return task;
+    // Someone new taking over a waiting step starts it fresh; otherwise the
+    // same "stuck" banner would come straight back after accepting the fix.
+    const handedOver = change.ownerId && change.ownerId !== task.ownerId && task.status === "blocked";
     return {
       ...task,
       ...(change.ownerId ? { ownerId: change.ownerId } : {}),
       ...(change.dueDate ? { dueDate: change.dueDate } : {}),
+      ...(handedOver ? { status: "todo" as const } : {}),
     };
   });
 }

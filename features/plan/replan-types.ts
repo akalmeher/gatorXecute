@@ -17,6 +17,8 @@ export interface ReplanRequest {
   concern?: string;
   /** Proposals already shown, so "See another option" returns something different. */
   avoid?: string[];
+  /** Recent notes from the team (newest first), so proposals can use the real reason. */
+  notes?: { from: string; text: string }[];
 }
 
 export interface PlanChange {

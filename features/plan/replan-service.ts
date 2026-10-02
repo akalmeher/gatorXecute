@@ -62,6 +62,12 @@ export function parseReplanRequest(body: unknown): ParseResult<ParsedReplanReque
       tasks,
       concern: typeof b.concern === "string" && b.concern.trim() ? b.concern.trim().slice(0, MAX_CONCERN_CHARS) : undefined,
       avoid: isStringArray(b.avoid) ? b.avoid.slice(-5) : [],
+      notes: Array.isArray(b.notes)
+        ? b.notes.flatMap((raw) => {
+            const n = asRecord(raw);
+            return nonEmptyString(n.from) && nonEmptyString(n.text) ? [{ from: n.from.slice(0, 60), text: n.text.slice(0, 500) }] : [];
+          }).slice(0, 6)
+        : [],
     },
   };
 }
@@ -102,7 +108,6 @@ export function validateReplan(raw: unknown, tasks: Task[], context: ReplanConte
   }
 
   if (r.onTrack === true && changes.length > 0) issues.push("When onTrack is true, changes must be empty.");
-  if (r.onTrack === false && changes.length === 0) issues.push("When onTrack is false, propose at least one change.");
   if (issues.length === 0) issues.push(...checkPlanChanges(changes, tasks, context));
 
   if (issues.length > 0) return { ok: false, issues };
@@ -129,6 +134,8 @@ Rules:
 - Every changed step must still be due on or after the steps it needs, and before the steps that need it.
 - ownerId must be a provided member id; taskId must be a provided step id; dueDate is YYYY-MM-DD. Omit ownerId or dueDate when that part doesn't change.
 - If nothing is late, stuck, or concerning, set onTrack to true, changes to an empty list, and say so plainly.
+- Not every problem is about who or when. If the real issue is a decision or disagreement the team must settle together (e.g. "we can't agree on a film"), propose settling it together, such as a quick vote or putting it first on the next meeting, with onTrack false and changes empty. Only reassign or move dates when that genuinely helps.
+- Explain in human terms, using the team's notes when they say why something is stuck. Never mention internal labels or how something is "marked", and never say things like "even though nothing is blocking it". Keep any dates or times from the notes exactly as written ("until Thursday" stays "until Thursday").
 - headline: one short sentence ("The team may be about a day behind." / "You're on track.").
 - situation: what is happening to the WORK, in plain words. Never blame, judge, or describe anyone as slow, lazy, or unreliable. Say "Maya's part is running later than planned", not "Maya is behind".
 - proposal: the fix in one sentence, naming people and steps ("Sara can draft the documentation today while Omar finishes the database.").
@@ -157,7 +164,7 @@ function buildPrompt(request: ParsedReplanRequest, context: ReplanContext, previ
   }));
   const problems = findPlanProblems(request.tasks, context.today).map((p) => ({
     step: p.task.id,
-    problem: { late: "past its due date and not done", stuck: "marked stuck with nothing left to wait for", unowned: "nobody is assigned", waiting: "marked waiting on an earlier step that is not finished yet (on schedule unless that step is late)" }[p.kind],
+    problem: { late: "past its due date and not done", stuck: "its owner says they are stuck on it (see the team notes for why)", unowned: "nobody is assigned", waiting: "its owner is waiting for an earlier step to finish (normal, on schedule unless that step is late)" }[p.kind],
     holdsUp: p.holdsUp.map((t) => t.id),
   }));
 
@@ -168,6 +175,9 @@ function buildPrompt(request: ParsedReplanRequest, context: ReplanContext, previ
     `Steps (JSON):\n${JSON.stringify(steps, null, 2)}`,
     `Problems noticed automatically (JSON):\n${JSON.stringify(problems, null, 2)}`,
     `Note from the student: ${request.concern ?? "(none)"}`,
+    `Recent notes from the team (newest first):\n${
+      request.notes.length > 0 ? request.notes.map((n) => `- ${n.from}: "${n.text}"`).join("\n") : "(none)"
+    }`,
   ];
   if (request.avoid.length > 0) {
     lines.push(`They already saw these proposals and want a different option:\n- ${request.avoid.join("\n- ")}`);

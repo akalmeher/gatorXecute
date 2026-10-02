@@ -46,6 +46,10 @@ export function useReplan(project: Project) {
         },
         tasks: project.tasks,
         concern: concernRef.current,
+        notes: project.asyncUpdates.slice(0, 6).map((update) => ({
+          from: project.members.find((m) => m.id === update.memberId)?.name ?? "A teammate",
+          text: update.content,
+        })),
         avoid: avoid.current,
       };
 
