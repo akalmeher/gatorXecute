@@ -10,28 +10,37 @@ import { isIsoDay } from "./plan-validation";
 
 export const MAX_PLAN_CHANGES = 5;
 
-export type PlanProblemKind = "late" | "stuck" | "unowned";
+export type PlanProblemKind = "late" | "stuck" | "unowned" | "waiting";
 
 export interface PlanProblem {
   task: Task;
   kind: PlanProblemKind;
   /** Unfinished steps that can't start until this one moves. */
   holdsUp: Task[];
+  /** Unfinished earlier steps this one needs first. */
+  waitingOn: Task[];
 }
 
-const KIND_ORDER: Record<PlanProblemKind, number> = { late: 0, stuck: 1, unowned: 2 };
+/** Late, stuck and unowned need attention; "waiting" is on schedule but reported by a student. */
+export function needsAttention(problem: PlanProblem): boolean {
+  return problem.kind !== "waiting";
+}
+
+const KIND_ORDER: Record<PlanProblemKind, number> = { late: 0, stuck: 1, unowned: 2, waiting: 3 };
 
 /**
  * Late = past due and not done. Stuck = marked waiting with nothing left to
  * wait for (waiting on unfinished earlier steps is normal, not a problem).
- * Unowned = nobody has it yet. Most urgent first.
+ * Unowned = nobody has it yet. Waiting = marked waiting on an unfinished earlier
+ * step: on schedule, but surfaced so a student's "I'm stuck" never goes unanswered.
+ * Most urgent first.
  */
 export function findPlanProblems(tasks: Task[], today: string): PlanProblem[] {
   const open = tasks.filter((t) => t.status !== "done");
-  const openIds = new Set(open.map((t) => t.id));
   const problems: PlanProblem[] = [];
   for (const task of open) {
-    const waitingOnOthers = task.dependencies.some((id) => openIds.has(id));
+    const waitingOn = open.filter((t) => task.dependencies.includes(t.id));
+    const waitingOnOthers = waitingOn.length > 0;
     const kind: PlanProblemKind | undefined =
       task.dueDate && task.dueDate < today
         ? "late"
@@ -39,9 +48,11 @@ export function findPlanProblems(tasks: Task[], today: string): PlanProblem[] {
           ? "stuck"
           : !task.ownerId
             ? "unowned"
-            : undefined;
+            : task.status === "blocked"
+              ? "waiting"
+              : undefined;
     if (!kind) continue;
-    problems.push({ task, kind, holdsUp: open.filter((t) => t.dependencies.includes(task.id)) });
+    problems.push({ task, kind, holdsUp: open.filter((t) => t.dependencies.includes(task.id)), waitingOn });
   }
   return problems.sort(
     (a, b) =>
@@ -55,6 +66,7 @@ export const PROBLEM_PHRASE: Record<PlanProblemKind, string> = {
   late: "is running late",
   stuck: "is stuck",
   unowned: "doesn't have anyone yet",
+  waiting: "is waiting on an earlier step",
 };
 
 export function applyPlanChanges(tasks: Task[], changes: PlanChange[]): Task[] {

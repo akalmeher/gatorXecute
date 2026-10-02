@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
-import { PROBLEM_PHRASE, findPlanProblems } from "@/features/plan/plan-health";
+import { PROBLEM_PHRASE, findPlanProblems, needsAttention } from "@/features/plan/plan-health";
 import { describePlanStatus, firstName, formatDay, orderSteps } from "@/features/plan/plan-display";
 import { todayIsoDay } from "@/features/plan/plan-validation";
 import {
@@ -60,7 +60,7 @@ export function StartView() {
   const { project } = useProject();
   const hasProject = project.tasks.length > 0;
   const status = describePlanStatus(orderSteps(project.tasks, project.members));
-  const [problem] = findPlanProblems(project.tasks, todayIsoDay());
+  const [problem] = findPlanProblems(project.tasks, todayIsoDay()).filter(needsAttention);
 
   return (
     <div className="space-y-10 max-w-4xl">

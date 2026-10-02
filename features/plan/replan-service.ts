@@ -157,7 +157,7 @@ function buildPrompt(request: ParsedReplanRequest, context: ReplanContext, previ
   }));
   const problems = findPlanProblems(request.tasks, context.today).map((p) => ({
     step: p.task.id,
-    problem: { late: "past its due date and not done", stuck: "marked stuck with nothing left to wait for", unowned: "nobody is assigned" }[p.kind],
+    problem: { late: "past its due date and not done", stuck: "marked stuck with nothing left to wait for", unowned: "nobody is assigned", waiting: "marked waiting on an earlier step that is not finished yet (on schedule unless that step is late)" }[p.kind],
     holdsUp: p.holdsUp.map((t) => t.id),
   }));
 

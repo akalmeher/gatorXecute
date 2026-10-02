@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import type { Project, Task } from "@/types";
 import { useReplan } from "./useReplan";
-import { PROBLEM_PHRASE, applyPlanChanges, checkPlanChanges, findPlanProblems } from "./plan-health";
+import { PROBLEM_PHRASE, applyPlanChanges, checkPlanChanges, findPlanProblems, needsAttention } from "./plan-health";
 import { describeWaitingOn, firstName, formatDay } from "./plan-display";
 import { toIsoDay, todayIsoDay } from "./plan-validation";
 
@@ -173,7 +173,27 @@ export function PlanRecovery({ project, replaceTasks }: PlanRecoveryProps) {
         </div>
       )}
 
-      {problem && !isAsking && (
+      {problem && !isAsking && !needsAttention(problem) && (
+        <div className="space-y-2 border-l-2 border-[#B8A6FF]/50 pl-5">
+          <p className="font-heading text-lg font-semibold text-[#F5F2FA]">
+            {problem.task.title} is waiting on {describeWaitingOn(problem.waitingOn.map((t) => t.title)).text}.
+          </p>
+          <p className="text-[#AAA5B4]">
+            {(() => {
+              const due = problem.waitingOn.map((t) => t.dueDate).filter(Boolean).sort().at(-1);
+              const late = problem.waitingOn.some((t) => t.dueDate && t.dueDate < today);
+              return late
+                ? "That earlier step is running late."
+                : `That's on schedule${due ? `: ${problem.waitingOn.length === 1 ? "it's" : "the last of them is"} due ${formatDay(due)}` : ""}. Nothing to fix yet.`;
+            })()}{" "}
+            <button type="button" onClick={() => find()} className={quietButton}>
+              Find a way forward anyway
+            </button>
+          </p>
+        </div>
+      )}
+
+      {problem && !isAsking && needsAttention(problem) && (
         <div className="space-y-3 border-l-2 border-[#D5B45C] pl-5">
           <p className="font-heading text-xl font-semibold text-[#F5F2FA]">
             {problem.task.title} {PROBLEM_PHRASE[problem.kind]}.
@@ -224,7 +244,7 @@ export function PlanRecovery({ project, replaceTasks }: PlanRecoveryProps) {
           </div>
         </form>
       ) : (
-        !problem && (
+        (!problem || !needsAttention(problem)) && (
           <p className="text-sm text-[#AAA5B4]">
             Falling behind or something changed?{" "}
             <button type="button" onClick={() => setIsAsking(true)} className={quietButton}>
