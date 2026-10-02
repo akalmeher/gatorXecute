@@ -2,23 +2,24 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Member, Project } from "@/types";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { findPlanProblems, needsAttention, PROBLEM_PHRASE } from "@/features/plan/plan-health";
 import { formatDay, orderSteps } from "@/features/plan/plan-display";
 import { toIsoDay, todayIsoDay } from "@/features/plan/plan-validation";
-import { encodePoll } from "@/features/meet/meet-link";
+import { encodePoll, type MeetPerson, type MeetPoll } from "@/features/meet/meet-link";
 import { useProfile } from "@/features/profile/useProfile";
 import { encodeTeam } from "@/features/team/team-link";
 
 /**
  * Collaboration Dock: "Where am I, and who am I here with?"
  * Presence over menus. Home, current project, team roster, and quick actions.
- * - Instant Persona Switcher ("Switch to Maya" / "I am Divij")
- * - 1-Click Teammate Add & Invite link generator
- * - SFSU Gold action buttons with tactile micro-interactions and animations.
+ * - Double-click Project Icon: Jump straight to the project setup & overview (/project)
+ * - Single-click Member Profile: Opens detailed presence with instant When2Meet button
+ * - Double-click Member Profile: Jump directly to When2Meet with pre-loaded team availability
+ * - Springy physics animations, SFSU Gold accents, and tactile micro-interactions
  */
 
 type Panel =
@@ -69,11 +70,12 @@ const TONE: Record<MemberState["tone"], { dot: string; label: string }> = {
 };
 
 const dockButton =
-  "relative flex h-11 w-11 items-center justify-center rounded-2xl font-heading text-xs font-bold transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF] cursor-pointer";
+  "relative flex h-11 w-11 items-center justify-center rounded-2xl font-heading text-xs font-bold transition-transform duration-200 ease-out hover:scale-110 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D5B45C] cursor-pointer select-none";
 const cardClass =
-  "z-50 w-68 rounded-2xl bg-[#1D202A] p-4 text-left text-sm shadow-2xl shadow-black/60 ring-1 ring-[#2A2E39] animate-slide-up";
+  "z-50 w-72 rounded-2xl bg-[#1D202A] p-4 text-left text-sm shadow-2xl shadow-black/70 ring-1 ring-[#2A2E39] animate-popover";
 
 export function CollaborationDock() {
+  const router = useRouter();
   const { project } = useProject();
   const { member: me, setCurrentMember } = useCurrentMember();
   const { profile } = useProfile();
@@ -111,6 +113,48 @@ export function CollaborationDock() {
         ? null
         : next
     );
+
+  /** Double-click action for Course / Project icon: jump straight to project page */
+  const handleCollabDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setPanel(null);
+    router.push("/project");
+  };
+
+  /** Pre-loads When2Meet availability for this teammate and current user */
+  const when2meetHref = (target: Member) => {
+    const targetBlocks = project.availability.filter((b) => b.memberId === target.id);
+    const myBlocks = me ? project.availability.filter((b) => b.memberId === me.id) : [];
+
+    const people: MeetPerson[] = [
+      {
+        id: target.id,
+        name: target.name,
+        blocks: targetBlocks,
+      },
+    ];
+    if (me && me.id !== target.id) {
+      people.push({
+        id: me.id,
+        name: me.name,
+        blocks: myBlocks,
+      });
+    }
+
+    const poll: MeetPoll = {
+      title: `1:1 with ${target.name.split(" ")[0]}`,
+      durationMinutes: 30,
+      people,
+    };
+    return `/meet#${encodePoll(poll)}`;
+  };
+
+  /** Double-click action for a member avatar: directly jump to When2Meet with them */
+  const handleMemberDoubleClick = (target: Member, e: React.MouseEvent) => {
+    e.preventDefault();
+    setPanel(null);
+    router.push(when2meetHref(target));
+  };
 
   const copyInvite = async () => {
     try {
@@ -158,13 +202,15 @@ export function CollaborationDock() {
         GX
       </Link>
 
-      {/* 2. Current Project / Course */}
+      {/* 2. Current Project / Course (Double-click to jump to Project Page) */}
       <div className="group relative">
         <button
           type="button"
-          aria-label={`${project.course}. ${project.name}`}
+          aria-label={`${project.course}. ${project.name}. Double-click to open Project page.`}
+          title="Click for options · Double-click to open Project"
           aria-expanded={panel?.kind === "collab"}
           onClick={() => toggle({ kind: "collab" })}
+          onDoubleClick={handleCollabDoubleClick}
           className={`${dockButton} ${
             inProject ? "bg-[#B8A6FF]/20 text-[#B8A6FF] ring-2 ring-[#B8A6FF]/60" : "bg-[#1D202A] text-[#F5F2FA]"
           }`}
@@ -183,25 +229,25 @@ export function CollaborationDock() {
               <div className="border-b border-[#2A2E39] pb-2 mb-2">
                 <p className="font-heading font-bold text-[#F5F2FA] text-base">{shortCourse}</p>
                 <p className="text-xs text-[#AAA5B4]">{project.name}</p>
-                {deadline && <p className="text-xs text-[#D5B45C] font-medium mt-1">Due {formatDay(deadline)}</p>}
+                {deadline && <p className="text-xs text-[#D5B45C] font-semibold mt-1">Due {formatDay(deadline)}</p>}
               </div>
 
               <div className="space-y-1">
                 <Link
-                  href="/plan"
+                  href="/project"
                   onClick={() => setPanel(null)}
-                  className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#0F1117] bg-[#D5B45C] hover:bg-[#E2C36E] transition shadow-sm"
+                  className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold text-[#0F1117] bg-[#D5B45C] hover:bg-[#E2C36E] transition shadow-sm active:scale-95"
                 >
-                  <span>💻</span>
-                  <span>AI Project Plan &amp; Tasks</span>
+                  <span>📋</span>
+                  <span>Open Project Overview</span>
                 </Link>
                 <Link
-                  href="/project"
+                  href="/plan"
                   onClick={() => setPanel(null)}
                   className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs text-[#F5F2FA] hover:bg-[#2A2E39] transition"
                 >
-                  <span>👥</span>
-                  <span>Team Roster &amp; Profiles</span>
+                  <span>💻</span>
+                  <span>AI Plan &amp; Tasks</span>
                 </Link>
                 <Link
                   href="/meet"
@@ -220,6 +266,9 @@ export function CollaborationDock() {
                   <span>Form or Switch Team</span>
                 </Link>
               </div>
+              <p className="text-[10px] text-[#AAA5B4]/60 text-center mt-2.5 pt-2 border-t border-[#2A2E39]/60">
+                Tip: Double-click dock icon to jump straight to Project
+              </p>
             </div>
           </div>
         )}
@@ -227,7 +276,7 @@ export function CollaborationDock() {
 
       <span aria-hidden className="hidden h-px w-8 bg-[#2A2E39] md:block" />
 
-      {/* 3. People Roster with Instant Persona Switcher */}
+      {/* 3. People Roster with Instant When2Meet & Persona Switcher */}
       <ul aria-label="Team" className="flex items-center gap-1 md:flex-col md:gap-2">
         {visible.map((member) => {
           const state = memberState(project, member);
@@ -237,13 +286,15 @@ export function CollaborationDock() {
             <li key={member.id} className="group relative">
               <button
                 type="button"
-                aria-label={`${member.name}${isMe ? " (you)" : ""}. ${state.line}${state.detail ? `. ${state.detail}` : ""}`}
+                aria-label={`${member.name}${isMe ? " (you)" : ""}. ${state.line}. Double-click for When2Meet.`}
+                title={`${member.name} · Click for options, Double-click for When2Meet`}
                 aria-expanded={open}
                 onClick={() => toggle({ kind: "member", id: member.id })}
-                className={`${dockButton} rounded-full transition-transform ${
+                onDoubleClick={(e) => handleMemberDoubleClick(member, e)}
+                className={`${dockButton} rounded-full transition-all duration-200 ${
                   isMe
-                    ? "bg-[#D5B45C] text-[#0F1117] ring-2 ring-[#D5B45C] ring-offset-2 ring-offset-[#0F1117] shadow-sm shadow-[#D5B45C]/30"
-                    : "bg-[#1D202A] text-[#F5F2FA]"
+                    ? "bg-[#D5B45C] text-[#0F1117] ring-2 ring-[#D5B45C] ring-offset-2 ring-offset-[#0F1117] ring-pulse-gold shadow-md shadow-[#D5B45C]/30"
+                    : "bg-[#1D202A] text-[#F5F2FA] hover:border-[#B8A6FF]/60"
                 }`}
               >
                 {member.initials}
@@ -287,43 +338,50 @@ export function CollaborationDock() {
                       </p>
                     )}
 
-                    <div className="mt-3.5 flex flex-wrap gap-2 pt-2 border-t border-[#2A2E39]">
-                      {isMe ? (
-                        <Link
-                          href="/profile"
-                          onClick={() => setPanel(null)}
-                          className="rounded-lg bg-[#D5B45C] px-3 py-1.5 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-sm"
-                        >
-                          Edit Profile &amp; Roles
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentMember(member.id);
-                            setPanel(null);
-                          }}
-                          className="rounded-lg bg-[#D5B45C] px-3 py-1.5 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-sm active:scale-95"
-                        >
-                          Switch to {member.name.split(" ")[0]}
-                        </button>
-                      )}
+                    <div className="mt-3.5 space-y-2 pt-2 border-t border-[#2A2E39]">
+                      {/* Primary Golden CTA: Instant When2Meet with this teammate */}
                       <Link
-                        href="/plan"
+                        href={when2meetHref(member)}
                         onClick={() => setPanel(null)}
-                        className="rounded-lg border border-[#B8A6FF]/40 bg-[#171A23] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#B8A6FF]/15 transition"
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#D5B45C] px-3.5 py-2 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-md shadow-[#D5B45C]/20 active:scale-95 w-full cursor-pointer"
                       >
-                        See steps
+                        <span>🗓️</span>
+                        <span>When2Meet with {member.name.split(" ")[0]}</span>
                       </Link>
-                      {!isMe && (
+
+                      <div className="flex flex-wrap gap-2">
+                        {isMe ? (
+                          <Link
+                            href="/profile"
+                            onClick={() => setPanel(null)}
+                            className="flex-1 text-center rounded-xl border border-[#B8A6FF]/40 bg-[#171A23] px-3 py-1.5 text-xs font-semibold text-[#B8A6FF] hover:bg-[#B8A6FF] hover:text-[#0F1117] transition shadow-sm"
+                          >
+                            Edit Profile
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentMember(member.id);
+                              setPanel(null);
+                            }}
+                            className="flex-1 rounded-xl border border-[#B8A6FF]/40 bg-[#171A23] px-3 py-1.5 text-xs font-semibold text-[#B8A6FF] hover:bg-[#B8A6FF] hover:text-[#0F1117] transition shadow-sm active:scale-95"
+                          >
+                            Switch to {member.name.split(" ")[0]}
+                          </button>
+                        )}
                         <Link
-                          href={`/meet#${encodePoll({ title: `With ${member.name.split(" ")[0]}`, durationMinutes: 30, people: [] })}`}
+                          href="/plan"
                           onClick={() => setPanel(null)}
-                          className="rounded-lg border border-[#B8A6FF]/40 bg-[#171A23] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#B8A6FF]/15 transition"
+                          className="rounded-xl border border-[#2A2E39] bg-[#171A23] px-3 py-1.5 text-xs font-medium text-[#AAA5B4] hover:text-[#F5F2FA] hover:bg-[#2A2E39] transition"
                         >
-                          Find a time
+                          Tasks
                         </Link>
-                      )}
+                      </div>
+
+                      <p className="text-[10px] text-[#AAA5B4]/60 text-center pt-1">
+                        Tip: Double-click avatar to jump straight to When2Meet
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -353,7 +411,7 @@ export function CollaborationDock() {
                   <Link
                     href="/team"
                     onClick={() => setPanel(null)}
-                    className="flex items-center gap-2 rounded-xl bg-[#D5B45C] px-3 py-2 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-sm w-full"
+                    className="flex items-center gap-2 rounded-xl bg-[#D5B45C] px-3 py-2 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-sm w-full active:scale-95"
                   >
                     <span>➕</span>
                     <span>Add Teammate with Profile</span>
