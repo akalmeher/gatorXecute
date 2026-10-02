@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
@@ -14,8 +14,33 @@ import { useCurrentMember } from "@/features/identity/useCurrentMember";
  */
 
 export function ProjectSetupView() {
-  const { project } = useProject();
+  const { project, updateProjectDetails } = useProject();
   const { member: me, setCurrentMember } = useCurrentMember();
+
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [courseInput, setCourseInput] = useState(project.course);
+  const [nameInput, setNameInput] = useState(project.name);
+  const [deadlineInput, setDeadlineInput] = useState(project.deadline);
+  const [descInput, setDescInput] = useState(project.description);
+
+  const openEditModal = () => {
+    setCourseInput(project.course);
+    setNameInput(project.name);
+    setDeadlineInput(project.deadline);
+    setDescInput(project.description);
+    setIsEditingProject(true);
+  };
+
+  const handleSaveProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProjectDetails({
+      course: courseInput.trim(),
+      name: nameInput.trim(),
+      deadline: deadlineInput.trim(),
+      description: descInput.trim(),
+    });
+    setIsEditingProject(false);
+  };
 
   return (
     <div className="space-y-10 animate-fade-in">
@@ -49,20 +74,117 @@ export function ProjectSetupView() {
 
       {/* Project Card: Assignment & Deadline */}
       <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8 space-y-4 hover-lift">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-lg bg-[#1D202A] border border-[#2A2E39] px-3 py-1 text-xs font-semibold text-[#B8A6FF]">
-            {project.course}
-          </span>
-          <span className="text-sm text-[#AAA5B4]">
-            Target submission: <strong className="text-[#D5B45C] font-semibold">{project.deadline}</strong>
-          </span>
-        </div>
-        <h2 className="font-heading text-2xl font-bold text-[#F5F2FA] tracking-tight">
-          {project.name}
-        </h2>
-        <p className="text-base text-[#AAA5B4] leading-relaxed max-w-3xl">
-          {project.description}
-        </p>
+        {isEditingProject ? (
+          <form onSubmit={handleSaveProject} className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[#2A2E39] pb-3">
+              <h3 className="font-heading text-lg font-bold text-[#F5F2FA]">Edit Project Information</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditingProject(false)}
+                className="text-xs text-[#AAA5B4] hover:text-[#F5F2FA]"
+              >
+                ✕ Cancel
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">Course Code / Name</label>
+                <input
+                  type="text"
+                  value={courseInput}
+                  onChange={(e) => setCourseInput(e.target.value)}
+                  placeholder="e.g. CSC 648: Software Engineering, BIO 240, ENG 300"
+                  className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2.5 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">Target Submission / Deadline</label>
+                <input
+                  type="text"
+                  value={deadlineInput}
+                  onChange={(e) => setDeadlineInput(e.target.value)}
+                  placeholder="e.g. October 16, 2026 or 2026-10-16"
+                  className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2.5 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">Project Name</label>
+              <input
+                type="text"
+                required
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="e.g. Collaborative Multiplayer Web App"
+                className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2.5 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">Project Description / Scope</label>
+              <textarea
+                rows={3}
+                value={descInput}
+                onChange={(e) => setDescInput(e.target.value)}
+                placeholder="Brief description of the deliverables and scope"
+                className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingProject(false)}
+                className="rounded-xl border border-[#2A2E39] px-4 py-2 text-xs font-medium text-[#AAA5B4] hover:text-[#F5F2FA]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-xl bg-[#D5B45C] px-5 py-2 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-md shadow-[#D5B45C]/20"
+              >
+                Save Project Details
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-lg bg-[#1D202A] border border-[#2A2E39] px-3 py-1 text-xs font-semibold text-[#B8A6FF]">
+                  {project.course || "No Course Specified"}
+                </span>
+                <span className="text-sm text-[#AAA5B4]">
+                  Target submission: <strong className="text-[#D5B45C] font-semibold">{project.deadline || "TBD"}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="rounded-xl border border-[#2A2E39] px-3 py-1.5 text-xs font-medium text-[#AAA5B4] hover:text-[#F5F2FA] hover:border-[#B8A6FF]/40 transition"
+                >
+                  ✏️ Edit Project Info
+                </button>
+                <Link
+                  href="/team"
+                  className="rounded-xl border border-[#2A2E39] px-3 py-1.5 text-xs font-medium text-[#AAA5B4] hover:text-[#D5B45C] hover:border-[#D5B45C]/40 transition"
+                >
+                  🚀 Switch or Create Team
+                </Link>
+              </div>
+            </div>
+            <h2 className="font-heading text-2xl font-bold text-[#F5F2FA] tracking-tight">
+              {project.name}
+            </h2>
+            <p className="text-base text-[#AAA5B4] leading-relaxed max-w-3xl">
+              {project.description}
+            </p>
+          </>
+        )}
       </div>
 
       {/* Team Roster Section */}

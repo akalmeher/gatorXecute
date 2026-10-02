@@ -10,6 +10,9 @@ interface ProjectContextValue {
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   updateTaskOwner: (taskId: string, ownerId: string) => void;
   replaceTasks: (tasks: Task[]) => void;
+  addTask: (task: Omit<Task, "id" | "projectId"> & { id?: string; projectId?: string }) => void;
+  deleteTask: (taskId: string) => void;
+  updateProjectDetails: (details: Partial<Pick<Project, "name" | "course" | "deadline" | "description">>) => void;
   /** Use a formed team (Divij: features/team). Work owned by people who left becomes unowned. */
   replaceMembers: (members: Member[]) => void;
   /** A formed team starts its own project: fresh steps, meetings and updates; the deadline is kept until the plan sets one. */
@@ -48,6 +51,35 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject((prev) => ({
       ...prev,
       tasks: newTasks,
+    }));
+  };
+
+  const addTask = (newTask: Omit<Task, "id" | "projectId"> & { id?: string; projectId?: string }) => {
+    const task: Task = {
+      ...newTask,
+      id: newTask.id || `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      projectId: newTask.projectId || project.id,
+      dependencies: newTask.dependencies || [],
+      status: newTask.status || "todo",
+      estimatedMinutes: newTask.estimatedMinutes || 60,
+    };
+    setProject((prev) => ({
+      ...prev,
+      tasks: [...prev.tasks, task],
+    }));
+  };
+
+  const deleteTask = (taskId: string) => {
+    setProject((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter((t) => t.id !== taskId),
+    }));
+  };
+
+  const updateProjectDetails = (details: Partial<Pick<Project, "name" | "course" | "deadline" | "description">>) => {
+    setProject((prev) => ({
+      ...prev,
+      ...details,
     }));
   };
 
@@ -161,6 +193,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         updateTaskStatus,
         updateTaskOwner,
         replaceTasks,
+        addTask,
+        deleteTask,
+        updateProjectDetails,
         replaceMembers,
         startProject,
         loadProject,

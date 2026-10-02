@@ -18,7 +18,7 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
 ];
 
 export function DashboardView() {
-  const { project, updateTaskStatus, getMemberById, replaceMembers } = useProject();
+  const { project, updateTaskStatus, getMemberById, replaceMembers, addTask, deleteTask } = useProject();
   const { member: me } = useCurrentMember();
   const { profile, getProjectProfile, saveProjectProfile } = useProfile();
 
@@ -31,6 +31,38 @@ export function DashboardView() {
   const [extractError, setExtractError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(!existingProjectProfile);
   const [activatedSuccess, setActivatedSuccess] = useState(false);
+
+  // Manual Task Creation state
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDesc, setTaskDesc] = useState("");
+  const [taskOwnerId, setTaskOwnerId] = useState<string>("");
+  const [taskDueDate, setTaskDueDate] = useState("");
+  const [taskStatus, setTaskStatus] = useState<TaskStatus>("todo");
+  const [taskMinutes, setTaskMinutes] = useState(60);
+
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskTitle.trim()) return;
+
+    addTask({
+      title: taskTitle.trim(),
+      description: taskDesc.trim(),
+      ownerId: taskOwnerId || undefined,
+      dueDate: taskDueDate || undefined,
+      status: taskStatus,
+      estimatedMinutes: taskMinutes || 60,
+      dependencies: [],
+    });
+
+    setTaskTitle("");
+    setTaskDesc("");
+    setTaskOwnerId("");
+    setTaskDueDate("");
+    setTaskStatus("todo");
+    setTaskMinutes(60);
+    setShowNewTaskModal(false);
+  };
 
   const getTaskCount = (status: TaskStatus) =>
     project.tasks.filter((t) => t.status === status).length;
@@ -107,6 +139,17 @@ export function DashboardView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setTaskStatus("todo");
+              setShowNewTaskModal(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#D5B45C] px-4 py-2.5 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-md shadow-[#D5B45C]/20 active:scale-95 cursor-pointer"
+          >
+            <span>➕</span>
+            <span>New Task</span>
+          </button>
           <Link
             href="/plan"
             className="inline-flex items-center gap-2 rounded-xl border border-[#B8A6FF]/40 bg-[#171A23] px-4 py-2.5 text-xs font-semibold text-[#F5F2FA] hover:bg-[#B8A6FF]/15 transition active:scale-95"
@@ -116,7 +159,7 @@ export function DashboardView() {
           </Link>
           <Link
             href="/project"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#D5B45C] px-4 py-2.5 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-md shadow-[#D5B45C]/20 active:scale-95"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#2A2E39] bg-[#171A23] px-4 py-2.5 text-xs font-semibold text-[#AAA5B4] hover:text-[#F5F2FA] hover:border-[#B8A6FF]/40 transition active:scale-95"
           >
             <span>👥</span>
             <span>Team &amp; Roles</span>
@@ -255,12 +298,25 @@ export function DashboardView() {
             >
               {/* Column Header */}
               <div className="flex items-center justify-between px-2 py-2 mb-3">
-                <span className="font-heading text-sm font-semibold text-[#F5F2FA]">
-                  {col.label}
-                </span>
-                <span className="rounded-md bg-[#1D202A] border border-[#2A2E39] px-2 py-0.5 text-xs font-medium text-[#AAA5B4]">
-                  {getTaskCount(col.id)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-heading text-sm font-semibold text-[#F5F2FA]">
+                    {col.label}
+                  </span>
+                  <span className="rounded-md bg-[#1D202A] border border-[#2A2E39] px-2 py-0.5 text-xs font-medium text-[#AAA5B4]">
+                    {getTaskCount(col.id)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTaskStatus(col.id);
+                    setShowNewTaskModal(true);
+                  }}
+                  title={`Add task to ${col.label}`}
+                  className="h-6 w-6 rounded-lg border border-[#2A2E39] bg-[#1D202A] text-xs font-bold text-[#AAA5B4] hover:text-[#D5B45C] hover:border-[#D5B45C]/50 flex items-center justify-center transition cursor-pointer"
+                >
+                  +
+                </button>
               </div>
 
               {/* Tasks List */}
@@ -287,11 +343,21 @@ export function DashboardView() {
                           <h3 className="font-heading text-base font-semibold text-[#F5F2FA] leading-snug">
                             {task.title}
                           </h3>
-                          {isMyTask && (
-                            <span className="rounded-full bg-[#B8A6FF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#B8A6FF] shrink-0">
-                              You
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isMyTask && (
+                              <span className="rounded-full bg-[#B8A6FF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#B8A6FF]">
+                                You
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => deleteTask(task.id)}
+                              title="Delete task"
+                              className="text-[#AAA5B4]/40 hover:text-red-400 p-0.5 transition text-xs leading-none"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
 
                         {task.dueDate && (
@@ -337,6 +403,143 @@ export function DashboardView() {
           );
         })}
       </div>
+
+      {/* New Task Modal */}
+      {showNewTaskModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+        >
+          <div className="relative w-full max-w-lg rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 shadow-2xl space-y-5 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-[#2A2E39] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📋</span>
+                <h3 className="font-heading text-lg font-bold text-[#F5F2FA]">
+                  Create New Task
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewTaskModal(false)}
+                className="rounded-lg p-1.5 text-[#AAA5B4] hover:bg-[#1D202A] hover:text-[#F5F2FA] transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                  Task Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="e.g. Design wireframes in Figma, Build auth API"
+                  className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2.5 text-sm text-[#F5F2FA] placeholder:text-[#AAA5B4]/50 focus:outline-none focus:border-[#B8A6FF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                  Description (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={taskDesc}
+                  onChange={(e) => setTaskDesc(e.target.value)}
+                  placeholder="Details, acceptance criteria, or links"
+                  className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-4 py-2 text-sm text-[#F5F2FA] placeholder:text-[#AAA5B4]/50 focus:outline-none focus:border-[#B8A6FF]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                    Assignee
+                  </label>
+                  <select
+                    value={taskOwnerId}
+                    onChange={(e) => setTaskOwnerId(e.target.value)}
+                    className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3.5 py-2.5 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF] cursor-pointer"
+                  >
+                    <option value="">Unassigned</option>
+                    {project.members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.role || "Member"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                    Initial Column / Status
+                  </label>
+                  <select
+                    value={taskStatus}
+                    onChange={(e) => setTaskStatus(e.target.value as TaskStatus)}
+                    className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3.5 py-2.5 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF] cursor-pointer"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={taskDueDate}
+                    onChange={(e) => setTaskDueDate(e.target.value)}
+                    className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3.5 py-2 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#AAA5B4] mb-1.5">
+                    Est. Minutes
+                  </label>
+                  <input
+                    type="number"
+                    min={15}
+                    step={15}
+                    value={taskMinutes}
+                    onChange={(e) => setTaskMinutes(Number(e.target.value))}
+                    className="w-full rounded-xl border border-[#2A2E39] bg-[#1D202A] px-3.5 py-2 text-sm text-[#F5F2FA] focus:outline-none focus:border-[#B8A6FF]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#2A2E39]">
+                <button
+                  type="button"
+                  onClick={() => setShowNewTaskModal(false)}
+                  className="rounded-xl border border-[#2A2E39] px-4 py-2.5 text-xs font-medium text-[#AAA5B4] hover:text-[#F5F2FA] hover:border-[#B8A6FF]/40 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!taskTitle.trim()}
+                  className="rounded-xl bg-[#D5B45C] px-5 py-2.5 text-xs font-semibold text-[#0F1117] hover:bg-[#E2C36E] transition shadow-md shadow-[#D5B45C]/20 disabled:opacity-50 cursor-pointer"
+                >
+                  Add Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
