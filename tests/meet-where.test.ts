@@ -79,3 +79,15 @@ test("where travels in the link and lands in the calendar file", async () => {
   assert.match(ics, /\r\nLOCATION:Library room 2 · https:\/\/zoom\.us\/j\/123\r\n/);
   assert.match(ics, /\r\nURL:https:\/\/zoom\.us\/j\/123\r\n/);
 });
+
+test("library study rooms: recognized, and booking follows the library's rules", async () => {
+  const { isLibrary, libraryBooking } = await import("@/features/meet/meet-where");
+  assert.ok(isLibrary(parseWhere("J. Paul Leonard Library, SF State")));
+  assert.ok(isLibrary(parseWhere("library 2nd floor")));
+  assert.ok(!isLibrary(parseWhere("Cesar Chavez Student Center")));
+  assert.ok(!isLibrary(parseWhere("Zoom")));
+  assert.equal(libraryBooking({ date: "2026-10-05", durationMinutes: 60 }, "2026-10-02").canBookNow, true);
+  const early = libraryBooking({ date: "2026-10-09", durationMinutes: 60 }, "2026-10-02");
+  assert.deepEqual(early, { canBookNow: false, note: "Booking opens Tuesday, Oct 6 (3 days before)." });
+  assert.equal(libraryBooking({ date: "2026-10-03", durationMinutes: 240 }, "2026-10-02").canBookNow, false);
+});

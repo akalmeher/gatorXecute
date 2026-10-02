@@ -260,7 +260,12 @@ export function QuickMeetView() {
               <> {joinNames(chosenWhen.notComing.map((p) => firstName(p.name)))} can&apos;t make it.</>
             )}
           </p>
-          <WhereField key={poll.where ?? ""} value={poll.where} onChange={(where) => update({ where })} />
+          <WhereField
+            key={poll.where ?? ""}
+            value={poll.where}
+            onChange={(where) => update({ where })}
+            when={{ date: poll.chosen.date, durationMinutes: poll.durationMinutes }}
+          />
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={downloadIcs} className={primaryButton}>
               Add to my calendar

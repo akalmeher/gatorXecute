@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { MAX_WHERE_CHARS, WHERE_SUGGESTIONS, parseWhere, type Where } from "./meet-where";
+import { LIBRARY_ROOMS, MAX_WHERE_CHARS, WHERE_SUGGESTIONS, isLibrary, libraryBooking, parseWhere, type Where } from "./meet-where";
 
 /**
  * Feature Owner: Divij Anand
@@ -62,9 +62,16 @@ function readBack(where: Where | null): string {
 interface WhereFieldProps {
   value?: string;
   onChange: (value: string | undefined) => void;
+  /** The confirmed meeting, if any, so library booking can say whether it's open yet. */
+  when?: { date: string; durationMinutes: number } | null;
 }
 
-export function WhereField({ value, onChange }: WhereFieldProps) {
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function WhereField({ value, onChange, when = null }: WhereFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
   const input = useRef<HTMLInputElement>(null);
@@ -83,7 +90,9 @@ export function WhereField({ value, onChange }: WhereFieldProps) {
 
   // Set: the place is the action.
   if (where && !editing) {
+    const booking = isLibrary(where) ? libraryBooking(when, localToday()) : null;
     return (
+      <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         <span className="inline-flex items-center gap-2 text-[#F5F2FA]">
           <KindIcon kind={where.kind} className="h-5 w-5 text-[#D5B45C]" />
@@ -96,7 +105,7 @@ export function WhereField({ value, onChange }: WhereFieldProps) {
           </a>
         )}
         {where.mapsUrl && (
-          <a href={where.mapsUrl} target="_blank" rel="noopener noreferrer" className={where.url ? quiet : action}>
+          <a href={where.mapsUrl} target="_blank" rel="noopener noreferrer" className={where.url || isLibrary(where) ? quiet : action}>
             Open in Maps
           </a>
         )}
@@ -105,9 +114,16 @@ export function WhereField({ value, onChange }: WhereFieldProps) {
             Call {where.phone}
           </a>
         )}
+        {booking && (
+          <a href={LIBRARY_ROOMS.url} target="_blank" rel="noopener noreferrer" className={booking.canBookNow ? action : quiet}>
+            Book a study room
+          </a>
+        )}
         <button type="button" onClick={startEditing} className={quiet}>
           Change
         </button>
+      </div>
+      {booking && <p className="text-xs text-[#AAA5B4]">{booking.note}</p>}
       </div>
     );
   }

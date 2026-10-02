@@ -140,3 +140,51 @@ export const WHERE_SUGGESTIONS: { label: string; value: string; needsLink?: bool
   { label: "Discord", value: "Discord", needsLink: true },
   { label: "Phone call", value: "Phone call" },
 ];
+
+// ---------- J. Paul Leonard Library study rooms ----------
+
+/** From library.sfsu.edu/reserve-room: SFSU only, up to 3 hours a day, booked up to 3 days ahead. */
+export const LIBRARY_ROOMS = {
+  url: "https://sfsu.libcal.com/spaces?lid=24473",
+  maxMinutes: 180,
+  daysAhead: 3,
+};
+
+const LIBRARY_RE = /\b(j\.? ?paul leonard|leonard library|library|lib \d{3})\b/i;
+
+export function isLibrary(where: Where | null): boolean {
+  return Boolean(where?.place && LIBRARY_RE.test(where.place));
+}
+
+function dayDiff(fromIso: string, toIso: string): number {
+  const [fy, fm, fd] = fromIso.split("-").map(Number);
+  const [ty, tm, td] = toIso.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
+/**
+ * Whether a study room can be booked for this meeting yet, in plain words.
+ * Without a confirmed time, just the rules.
+ */
+export function libraryBooking(
+  when: { date: string; durationMinutes: number } | null,
+  today: string
+): { canBookNow: boolean; note: string } {
+  const rules = "Rooms are for SFSU students, up to 3 hours, booked up to 3 days ahead.";
+  if (!when) return { canBookNow: true, note: rules };
+  if (when.durationMinutes > LIBRARY_ROOMS.maxMinutes) {
+    return { canBookNow: false, note: "Study rooms can be booked for up to 3 hours, so shorten the meeting or split it." };
+  }
+  const ahead = dayDiff(today, when.date);
+  if (ahead > LIBRARY_ROOMS.daysAhead) {
+    const [y, m, d] = when.date.split("-").map(Number);
+    const opens = new Date(Date.UTC(y, m - 1, d - LIBRARY_ROOMS.daysAhead)).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    return { canBookNow: false, note: `Booking opens ${opens} (3 days before).` };
+  }
+  return { canBookNow: true, note: "Book it now: rooms go fast." };
+}
