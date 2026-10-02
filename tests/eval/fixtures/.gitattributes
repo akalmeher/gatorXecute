@@ -1,0 +1,2 @@
+# Fixtures are byte-exact test inputs: never convert line endings.
+*.pdf binary
