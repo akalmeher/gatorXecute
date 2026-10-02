@@ -165,7 +165,7 @@ export function cellsToBlocks(
       const isConsecutive =
         currentTime !== undefined &&
         timeToMinutes(currentTime) ===
-          timeToMinutes(previousTime) + SLOT_MINUTES;
+        timeToMinutes(previousTime) + SLOT_MINUTES;
 
       if (isConsecutive) {
         previousTime = currentTime;
