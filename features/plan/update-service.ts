@@ -1,6 +1,6 @@
 import type { Task, TaskStatus } from "@/types";
 import type { ProgressInterpretation, ProgressUpdateRequest, ProgressUpdateResponse, StatusChange } from "./update-types";
-import { generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
+import { failureMessage, generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
 import { type ParseResult, asRecord, isStringArray, nonEmptyString, parseMode, parseTasks } from "@/features/ai/ai-parse";
 
 /**
@@ -188,7 +188,7 @@ export async function interpretProgressUpdate(body: unknown): Promise<{ status: 
     body: {
       ok: false,
       error: result.error,
-      message: result.error === "missing_key" ? result.message : "I couldn't read that update. Try rephrasing, or change the step on the Work tab.",
+      message: failureMessage(result.error, "I couldn't read that update. Try rephrasing, or change the step on the Work tab."),
       issues: result.issues,
     },
   };

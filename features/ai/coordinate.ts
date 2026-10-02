@@ -1,5 +1,5 @@
 import type { CoordinateIntent, CoordinateResponse, CoordinateResult } from "./coordinate-types";
-import { generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
+import { failureMessage, generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
 import { type ParseResult, asRecord, isStringArray, nonEmptyString, parseMode } from "./ai-parse";
 
 /**
@@ -128,6 +128,6 @@ export async function coordinate(body: unknown): Promise<{ status: number; body:
   if (result.ok) return { status: 200, body: { ok: true, source: "gemini", model: result.model, result: result.value } };
   return {
     status: result.error === "missing_key" ? 503 : 502,
-    body: { ok: false, error: result.error, message: "I couldn't read that one. Try rephrasing.", issues: result.issues },
+    body: { ok: false, error: result.error, message: failureMessage(result.error, "I couldn't read that one. Try rephrasing."), issues: result.issues },
   };
 }

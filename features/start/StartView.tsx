@@ -185,7 +185,7 @@ export function StartView() {
             Team
           </h2>
           {/* People live in the Collaboration Dock; Home only states how the work is going. */}
-          <p className={`text-sm ${attentionCount === 0 ? "text-[#7FD1A6]" : "text-[#D5B45C]"}`}>
+          <p className={`text-sm ${attentionCount === 0 ? "text-[#B8A6FF]" : "text-[#D5B45C]"}`}>
             {attentionCount === 0 ? "✓ On track" : attentionCount === 1 ? "⚠ 1 thing needs attention" : `⚠ ${attentionCount} things need attention`}
           </p>
         </section>

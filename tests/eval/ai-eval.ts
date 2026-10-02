@@ -5,7 +5,7 @@
  *
  * Needs GEMINI_API_KEY in the environment (makes real API calls).
  *
- *   node --env-file=.env.local --experimental-transform-types --no-warnings \
+ *   node --env-file=.env.local --no-warnings \
  *     --import ./tests/setup/register.mjs tests/eval/ai-eval.ts [runs]
  */
 import { readFileSync } from "node:fs";

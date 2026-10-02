@@ -18,7 +18,7 @@ but **correct** (e.g. "almost done" must not become done; a class ending
 10:50 must block until 11:00; the PDF's deadline must be Oct 13).
 
 ```bash
-node --env-file=.env.local --experimental-transform-types --no-warnings \
+node --env-file=.env.local --no-warnings \
   --import ./tests/setup/register.mjs tests/eval/ai-eval.ts 2
 ```
 

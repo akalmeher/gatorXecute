@@ -1,7 +1,7 @@
 import type { Task } from "@/types";
 import type { PlanMember } from "./plan-types";
 import type { PlanChange, ReplanRequest, ReplanResponse, ReplanSuggestion } from "./replan-types";
-import { generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
+import { failureMessage, generateValidatedGeminiJson, isGeminiOffline } from "@/features/ai/gemini";
 import {
   type ParseResult,
   asRecord,
@@ -291,7 +291,7 @@ export async function generateReplan(body: unknown): Promise<{ status: number; b
     body: {
       ok: false,
       error: result.error,
-      message: result.error === "missing_key" ? "Gemini is not configured on the server." : "I couldn't find a safe way to change the plan.",
+      message: failureMessage(result.error, "I couldn't find a safe way to change the plan."),
       issues: result.issues,
     },
   };

@@ -85,10 +85,12 @@ From the team's design philosophy:
 
 - `npm run lint`, `npm run build`, `tsc --noEmit` pass (apart from one
   existing lint error in `features/scheduling/AvailabilityGrid.tsx:96`).
-- **27 tests** (`tests/`, Node's runner, no dependencies): plan validation,
+- **39 tests** (`tests/`, Node's runner, no dependencies): plan validation,
   plan health and replanning safety, availability time math, Quick Meet
   links, catch-up honesty rules, updates, cache, rate limit, and model
-  routing (Gemma first, Gemini fallback, no unsupported settings to Gemma).
+  routing (Gemma first, Gemini fallback, no unsupported settings to Gemma),
+  Quick Meet attendance, explicit dates/time zones and link validation.
+  They run with Node's default type stripping (Node 22.18+, no flags).
 - **Model evaluation** (`tests/eval/ai-eval.ts`): 72 live calls across
   Gemma 4 26B, Gemma 4 31B and Gemini. Verified to
   catch regressions by re-breaking a fix.

@@ -78,7 +78,7 @@ Open http://localhost:3000. Check http://localhost:3000/api/health shows
 Tests:
 
 ```bash
-node --experimental-transform-types --no-warnings --import ./tests/setup/register.mjs --test "tests/**/*.test.ts"
+node --no-warnings --import ./tests/setup/register.mjs --test "tests/**/*.test.ts"
 ```
 
 ## Team

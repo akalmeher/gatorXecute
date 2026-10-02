@@ -45,7 +45,7 @@ const TONE: Record<MemberState["tone"], { dot: string; label: string }> = {
   working: { dot: "bg-[#B8A6FF]", label: "●" },
   waiting: { dot: "bg-[#AAA5B4]", label: "‖" },
   attention: { dot: "bg-[#D5B45C]", label: "⚠" },
-  clear: { dot: "bg-[#7FD1A6]", label: "✓" },
+  clear: { dot: "bg-[#B8A6FF]", label: "✓" },
 };
 
 const dockButton =
@@ -106,7 +106,7 @@ export function CollaborationDock() {
     <nav
       ref={dockRef}
       aria-label="Collaboration dock"
-      className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around gap-1 border-t border-[#2A2E39] bg-[#13151D]/95 px-2 py-2 backdrop-blur md:inset-x-auto md:inset-y-0 md:left-0 md:w-16 md:flex-col md:justify-start md:gap-2 md:border-r md:border-t-0 md:py-4"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around gap-1 border-t border-[#2A2E39] bg-[#171A23]/95 px-2 py-2 backdrop-blur md:inset-x-auto md:inset-y-0 md:left-0 md:w-16 md:flex-col md:justify-start md:gap-2 md:border-r md:border-t-0 md:py-4"
     >
       {/* Context: home + current collaboration */}
       <Link
@@ -128,21 +128,21 @@ export function CollaborationDock() {
         >
           {courseCode}
           {attention.length > 0 && (
-            <span aria-hidden className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#D5B45C] ring-2 ring-[#13151D]" />
+            <span aria-hidden className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#D5B45C] ring-2 ring-[#171A23]" />
           )}
         </button>
         {panel?.kind === "collab" ? (
           <div className="absolute bottom-full left-0 mb-3 md:bottom-auto md:left-full md:top-0 md:mb-0 md:ml-3">
             <div className={cardClass}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#AAA5B4]">Your collaborations</p>
-              <Link href="/plan" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 hover:bg-[#262A36]">
+              <Link href="/plan" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 hover:bg-[#2A2E39]">
                 <span className="text-[#B8A6FF]">●</span> <span className="font-semibold text-[#F5F2FA]">{shortCourse}</span>
                 <span className="block pl-4 text-[#AAA5B4]">{project.name}</span>
               </Link>
-              <Link href="/meet" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#262A36]">
+              <Link href="/meet" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
                 <span className="text-[#AAA5B4]">○</span> Quick meet
               </Link>
-              <Link href="/#coordinate" onClick={() => setPanel(null)} className="mt-1 block rounded-xl px-2 py-2 text-[#B8A6FF] hover:bg-[#262A36]">
+              <Link href="/#coordinate" onClick={() => setPanel(null)} className="mt-1 block rounded-xl px-2 py-2 text-[#B8A6FF] hover:bg-[#2A2E39]">
                 + Coordinate something
               </Link>
             </div>
@@ -177,7 +177,7 @@ export function CollaborationDock() {
                 {member.initials}
                 <span
                   aria-hidden
-                  className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-[#13151D] ${TONE[state.tone].dot}`}
+                  className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-[#171A23] ${TONE[state.tone].dot}`}
                 />
               </button>
               <div
@@ -204,7 +204,7 @@ export function CollaborationDock() {
                       <Link
                         href="/plan"
                         onClick={() => setPanel(null)}
-                        className="rounded-lg bg-[#262A36] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#2F3442]"
+                        className="rounded-lg bg-[#2A2E39] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#B8A6FF]/10"
                       >
                         See steps
                       </Link>
@@ -212,7 +212,7 @@ export function CollaborationDock() {
                         <Link
                           href={`/meet#${encodePoll({ title: `With ${member.name.split(" ")[0]}`, durationMinutes: 30, people: [] })}`}
                           onClick={() => setPanel(null)}
-                          className="rounded-lg bg-[#262A36] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#2F3442]"
+                          className="rounded-lg bg-[#2A2E39] px-3 py-1.5 text-xs font-medium text-[#F5F2FA] hover:bg-[#B8A6FF]/10"
                         >
                           Find a time
                         </Link>
@@ -268,11 +268,11 @@ export function CollaborationDock() {
                   setCurrentMember(null);
                   setPanel(null);
                 }}
-                className="block w-full rounded-xl px-2 py-2 text-left text-[#F5F2FA] hover:bg-[#262A36]"
+                className="block w-full rounded-xl px-2 py-2 text-left text-[#F5F2FA] hover:bg-[#2A2E39]"
               >
                 {me ? "Switch person" : "Choose who you are"}
               </button>
-              <Link href="/project" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#262A36]">
+              <Link href="/project" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
                 Team &amp; skills
               </Link>
             </div>

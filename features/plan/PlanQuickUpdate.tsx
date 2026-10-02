@@ -102,7 +102,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
   if (result) {
     const { interpretation, source, model } = result;
     return (
-      <section aria-labelledby="update-heading" className="space-y-3 rounded-2xl bg-[#1A1D27] p-5">
+      <section aria-labelledby="update-heading" className="space-y-3 rounded-2xl bg-[#171A23] p-5">
         <h3 id="update-heading" className="font-heading text-lg font-semibold text-[#F5F2FA]">
           {interpretation.summary}
         </h3>
@@ -148,7 +148,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
           + Update
         </button>
         {confirmation && (
-          <p role="status" className="text-sm text-[#7FD1A6]">
+          <p role="status" className="text-sm text-[#B8A6FF]">
             {confirmation}
           </p>
         )}
@@ -182,7 +182,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
         maxLength={1000}
         disabled={isLoading}
         autoFocus
-        placeholder="What's new? e.g. finished the API, waiting on Ammar's UI"
+        placeholder="What's new? e.g. finished the research, waiting on Maya's sources"
         className={fieldClass}
       />
       <div className="flex flex-wrap items-center gap-3">

@@ -1,4 +1,5 @@
 import type { AvailabilityBlock } from "@/types";
+import { DAYS, END_HOUR, SLOT_MINUTES, START_HOUR } from "@/features/scheduling/scheduling-utils";
 
 /**
  * Feature Owner: Divij Anand (service) · Consumer: Oscar Garcia (availability grid)
@@ -21,12 +22,12 @@ export interface AvailabilityGrid {
   slotMinutes: number;
 }
 
-/** Matches Oscar's grid: Mon–Fri, 9 AM–9 PM, 30-minute cells, local wall-clock time. */
+/** Always Oscar's grid (days, hours and cell size come from scheduling-utils), local wall-clock time. */
 export const DEFAULT_GRID: AvailabilityGrid = {
-  days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-  startHour: 9,
-  endHour: 21,
-  slotMinutes: 30,
+  days: [...DAYS],
+  startHour: START_HOUR,
+  endHour: END_HOUR,
+  slotMinutes: SLOT_MINUTES,
 };
 
 export interface AvailabilityRequest {

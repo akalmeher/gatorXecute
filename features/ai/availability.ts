@@ -8,7 +8,7 @@ import type {
   DayOfWeek,
 } from "./availability-types";
 import { DEFAULT_GRID } from "./availability-types";
-import { generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
+import { failureMessage, generateValidatedGeminiJson, isGeminiOffline } from "./gemini";
 import { type ParseResult, asRecord, isStringArray, nonEmptyString, parseMode } from "./ai-parse";
 import { ALL_DAYS, applyRules, blocksFromCells, cellsFromBlocks, describeBlocks, parseClock } from "./availability-compile";
 
@@ -224,6 +224,6 @@ export async function generateAvailability(body: unknown): Promise<{ status: num
   }
   return {
     status: result.error === "missing_key" ? 503 : 502,
-    body: { ok: false, error: result.error, message: result.error === "missing_key" ? result.message : "I couldn't read that. Try rephrasing, or paint the grid directly.", issues: result.issues },
+    body: { ok: false, error: result.error, message: failureMessage(result.error, "I couldn't read that. Try rephrasing, or paint the grid directly."), issues: result.issues },
   };
 }

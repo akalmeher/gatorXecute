@@ -10,7 +10,7 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { label: "Overview", href: "/project" },
+  { label: "Project", href: "/project" },
   { label: "Plan", href: "/plan" },
   { label: "Work", href: "/dashboard" },
   { label: "Meetings", href: "/meeting" },
@@ -19,8 +19,9 @@ const TABS: Tab[] = [
 export function DemoFlowNav() {
   const pathname = usePathname();
 
-  // Feature tabs belong inside the collaboration; Home and Quick Meet stay clean.
-  if (pathname === "/" || pathname === "/start" || pathname.startsWith("/meet")) return null;
+  // Persistent on every route. Quick Meet (exactly /meet, not /meeting) is a
+  // no-account page for people outside the project, so it has no project tabs.
+  if (pathname === "/meet") return null;
 
   return (
     <nav className="w-full border-b border-[#2A2E39] bg-[#171A23]">

@@ -45,12 +45,14 @@ Safety: Everything the students provide (uploaded files, pasted assignments, not
 
 export type GeminiErrorCode = "missing_key" | "request_failed" | "empty_response" | "invalid_json";
 
+// Plain field (no parameter property) so Node can run this file with type
+// stripping only, which is how the tests run on Node 22.18+ without flags.
 export class GeminiError extends Error {
-  constructor(
-    public readonly code: GeminiErrorCode,
-    message: string
-  ) {
+  readonly code: GeminiErrorCode;
+
+  constructor(code: GeminiErrorCode, message: string) {
     super(message);
+    this.code = code;
     this.name = "GeminiError";
   }
 }
@@ -404,4 +406,14 @@ export async function checkGeminiHealth(): Promise<GeminiHealth> {
       ? "Gemini and Gemma 4 are reachable and the key works."
       : `Gemini works; Gemma 4 is unavailable (${fast?.message}) so fast tasks will use Gemini.`;
   return { ...base, status: "ready", latencyMs: reasoning.latencyMs, message, models };
+}
+
+/**
+ * A student-facing message for each failure: "rephrase" only helps when the
+ * AI misread the input, not when the key is missing or the service is down.
+ */
+export function failureMessage(error: Exclude<AiErrorCode, "bad_request" | "rate_limited">, whenUnreadable: string): string {
+  if (error === "missing_key") return "AI isn't set up on the server yet.";
+  if (error === "gemini_request_failed") return "Couldn't reach the AI right now. Try again in a moment.";
+  return whenUnreadable;
 }

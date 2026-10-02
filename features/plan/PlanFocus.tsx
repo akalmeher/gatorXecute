@@ -15,9 +15,9 @@ import { toIsoDay, todayIsoDay } from "./plan-validation";
  */
 
 export const primaryButton =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#B8A6FF] px-5 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#C8B9FF] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-wait cursor-pointer transition";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#B8A6FF] px-5 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-wait cursor-pointer transition";
 export const secondaryButton =
-  "inline-flex items-center justify-center rounded-xl bg-[#1D202A] px-5 py-2.5 text-sm font-medium text-[#F5F2FA] hover:bg-[#262A36] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer transition";
+  "inline-flex items-center justify-center rounded-xl bg-[#1D202A] px-5 py-2.5 text-sm font-medium text-[#F5F2FA] hover:bg-[#2A2E39] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer transition";
 export const quietButton =
   "inline-flex items-center rounded-lg px-2 py-1 text-sm text-[#AAA5B4] underline-offset-4 hover:text-[#F5F2FA] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer";
 export const sectionLabel = "text-xs font-semibold uppercase tracking-[0.14em] text-[#AAA5B4]";
@@ -98,7 +98,7 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
   if (suggestion) {
     const settleTogether = !suggestion.onTrack && suggestion.changes.length === 0;
     return (
-      <section aria-labelledby="fix-heading" className="space-y-4 rounded-2xl bg-[#1A1D27] p-6">
+      <section aria-labelledby="fix-heading" className="space-y-4 rounded-2xl bg-[#171A23] p-6">
         <p className={sectionLabel}>{suggestion.onTrack ? "All good" : settleTogether ? "Settle it together" : "Suggested fix"}</p>
         <h2 id="fix-heading" className="font-heading text-xl font-bold text-[#F5F2FA]">
           {suggestion.onTrack ? suggestion.headline : suggestion.proposal}
@@ -154,7 +154,7 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
   return (
     <div className="space-y-8">
       {notice && (
-        <p role="status" className="text-sm text-[#7FD1A6]">
+        <p role="status" className="text-sm text-[#B8A6FF]">
           {notice}
         </p>
       )}

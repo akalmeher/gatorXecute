@@ -239,7 +239,7 @@ export function ProjectPlanView() {
           <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
             <div className="min-w-0 space-y-8">
               {justAccepted && (
-                <p role="status" className="text-sm text-[#7FD1A6]">
+                <p role="status" className="text-sm text-[#B8A6FF]">
                   ✓ Plan saved ·{" "}
                   <Link href="/dashboard" className="underline underline-offset-4 hover:text-[#F5F2FA]">
                     see the board

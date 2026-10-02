@@ -10,22 +10,33 @@ First we meet; planning is offered only afterwards, and only if wanted.
    **paint Oscar's grid**.
 2. **Copy link** and send it anywhere.
 3. The next person opens it ("Divij wants to find a time"), adds their times.
-4. **The answer comes first**, from Oscar's `findBestMeetingTime`:
-   "★ Best time · Monday 4:00–5:00 PM · You're both free · [This works]".
-   Partial matches are labeled ("3 of 4 can make it. Maya can't.").
-5. **Set**: add to calendar (`.ics`), copy link for the group, and a quiet
-   "I can help plan the work too →".
+4. **The answer comes first**, from Oscar's `findBestMeetingTime`
+   (`recommendMeeting` in `meet-link.ts`): "★ Best time · Monday 4:00–5:00 PM ·
+   You're both free · [This works]". **Everyone in the poll counts**, so a
+   person with no times makes it "2 of 3 can make it. Sara hasn't marked any
+   free times", never "everyone". Each person's blocks are merged first so
+   adjacent blocks cover longer meetings.
+5. **Set**: the confirmation stores an explicit **date** (today if the slot
+   hasn't started yet, otherwise next week), the **IANA time zone** and the
+   **actual attendee ids**. "Monday, Oct 5 at 4:00 PM is set. 4:00–5:00 PM PDT
+   with Divij and Maya. Sara can't make it." The `.ics` uses UTC times and
+   lists who can't make it. Then copy the link, and a quiet "I can help plan
+   the work too →".
 
 ## The link is the database
 
 The whole poll lives in the URL `#fragment`, which browsers never send to a
 server (`meet-link.ts`):
 
-- `base64url(JSON)` with `{ v, title, duration, people[[id, name, cells]], chosen? }`
-- each person's grid is one 24-bit mask per day (Mon–Fri, 9–9, 30-min cells),
-  so a two-person link is ~150 characters
-- invalid links decode to `null` and the page starts fresh with a note;
-  opening a different link on the same page reloads that poll
+- format v2: `base64url(JSON)` with `{ v, title, duration, people[[id, name, cells]],
+  chosen?[day, date, start, end, timeZone, attendeeIds] }`
+- each person's grid is one 24-bit mask per day over Oscar's `DAYS` (Mon–Sun,
+  9–9, 30-min cells), so a two-person link is ~200 characters
+- invalid links decode to `null` and the page starts fresh with a note; a
+  confirmed slot that isn't fully consistent (missing end, wrong length, date
+  on the wrong weekday, bad time zone, unknown attendee) is dropped, so a bad
+  link can never show a meeting as booked; opening a different link on the
+  same page reloads that poll
 
 **Privacy:** nothing about students is stored anywhere. Typed descriptions are
 sent to the server only so Gemini can read them.

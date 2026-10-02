@@ -1,6 +1,6 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { generateValidatedGeminiJson, modelsForTier } from "@/features/ai/gemini";
+import { failureMessage, generateValidatedGeminiJson, modelsForTier } from "@/features/ai/gemini";
 
 // Fake network: records which model each call went to and what it was sent.
 type Reply = { status: number; json?: unknown };
@@ -72,4 +72,10 @@ test("reasoning tasks never touch Gemma", async () => {
   fakeFetch({ "gemini-flash-latest": [{ status: 200, json: { intent: "meet" } }] });
   await ask("reasoning");
   assert.deepEqual(calls.map((c) => c.model), ["gemini-flash-latest"]);
+});
+
+test("failure messages only ask students to rephrase when the AI misread them", () => {
+  assert.doesNotMatch(failureMessage("missing_key", "Try rephrasing."), /rephras/i);
+  assert.doesNotMatch(failureMessage("gemini_request_failed", "Try rephrasing."), /rephras/i);
+  assert.equal(failureMessage("gemini_invalid_output", "Try rephrasing."), "Try rephrasing.");
 });

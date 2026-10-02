@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { AvailabilityBlock, Member } from "@/types";
 import { AvailabilityGrid } from "@/features/scheduling/AvailabilityGrid";
-import { findBestMeetingTime, formatTime } from "@/features/scheduling/scheduling-utils";
+import { formatTime } from "@/features/scheduling/scheduling-utils";
 import type { AvailabilityResponse } from "@/features/ai/availability-types";
 import {
   DURATIONS,
@@ -13,6 +13,10 @@ import {
   type MeetPerson,
   type MeetPoll,
   buildIcs,
+  localTimeZone,
+  recommendMeeting,
+  resolveMeetingDate,
+  zonedTimeToUtc,
   decodePoll,
   encodePoll,
   newPersonId,
@@ -92,7 +96,7 @@ export function QuickMeetView() {
 
   const me = poll.people.find((p) => p.id === meId);
   const myBlocks = useMemo(() => me?.blocks ?? [], [me]);
-  const peopleWithTimes = poll.people.filter((p) => p.blocks.length > 0);
+  const anyTimes = poll.people.some((p) => p.blocks.length > 0);
   const others = poll.people.filter((p) => p.id !== meId);
   const allBlocks = useMemo(() => poll.people.flatMap((p) => p.blocks), [poll.people]);
   const gridMembers = useMemo(() => {
@@ -100,13 +104,10 @@ export function QuickMeetView() {
     return me ? list : [...list, toMember({ id: meId, name: myName || "You", blocks: [] })];
   }, [poll.people, me, meId, myName]);
 
-  const best = useMemo(
-    () =>
-      peopleWithTimes.length >= 2
-        ? findBestMeetingTime(peopleWithTimes.map((p) => p.id), allBlocks, poll.durationMinutes)
-        : null,
-    [peopleWithTimes, allBlocks, poll.durationMinutes]
-  );
+  // Everyone in the poll counts, including people with no free times yet.
+  const rec = useMemo(() => recommendMeeting(poll), [poll]);
+  // A "meeting" one person can attend isn't an answer.
+  const best = rec && rec.attendees.length >= 2 ? rec : null;
 
   // Keep the address bar in sync so the current link is always the one to share.
   useEffect(() => {
@@ -184,7 +185,32 @@ export function QuickMeetView() {
   };
 
   const starter = poll.people[0];
-  const missing = best ? peopleWithTimes.filter((p) => !best.availableMemberIds.includes(p.id)).map((p) => firstName(p.name)) : [];
+  const confirm = () => {
+    if (!best) return;
+    const timeZone = localTimeZone();
+    const { day, startTime, endTime } = best.slot;
+    update({
+      chosen: {
+        day,
+        startTime,
+        endTime,
+        timeZone,
+        date: resolveMeetingDate(day, startTime, timeZone),
+        attendeeIds: best.attendees.map((p) => p.id),
+      },
+    });
+  };
+  const chosenWhen = poll.chosen
+    ? {
+        date: new Date(`${poll.chosen.date}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }),
+        zone:
+          new Intl.DateTimeFormat("en-US", { timeZone: poll.chosen.timeZone, timeZoneName: "short" })
+            .formatToParts(zonedTimeToUtc(poll.chosen.date, poll.chosen.startTime, poll.chosen.timeZone))
+            .find((p) => p.type === "timeZoneName")?.value ?? poll.chosen.timeZone,
+        coming: poll.people.filter((p) => poll.chosen?.attendeeIds.includes(p.id)),
+        notComing: poll.people.filter((p) => !poll.chosen?.attendeeIds.includes(p.id)),
+      }
+    : null;
 
   return (
     <div className="space-y-10 max-w-4xl">
@@ -219,11 +245,14 @@ export function QuickMeetView() {
       {poll.chosen ? (
         <section aria-labelledby="set-heading" className="space-y-4 border-l-2 border-[#D5B45C] pl-5">
           <h2 id="set-heading" className="font-heading text-2xl font-bold text-[#F5F2FA]">
-            {DAY_NAME[poll.chosen.day]} at {formatTime(poll.chosen.startTime)} is set.
+            {chosenWhen?.date} at {formatTime(poll.chosen.startTime)} is set.
           </h2>
           <p className="text-[#AAA5B4]">
-            {formatTime(poll.chosen.startTime)}–{formatTime(poll.chosen.endTime)} with{" "}
-            {joinNames(poll.people.map((p) => firstName(p.name)))}.
+            {formatTime(poll.chosen.startTime)}–{formatTime(poll.chosen.endTime)} {chosenWhen?.zone} with{" "}
+            {joinNames((chosenWhen?.coming ?? []).map((p) => firstName(p.name)))}.
+            {chosenWhen && chosenWhen.notComing.length > 0 && (
+              <> {joinNames(chosenWhen.notComing.map((p) => firstName(p.name)))} can&apos;t make it.</>
+            )}
           </p>
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={downloadIcs} className={primaryButton}>
@@ -247,19 +276,26 @@ export function QuickMeetView() {
         <section aria-labelledby="best-heading" className="space-y-4 border-l-2 border-[#D5B45C] pl-5">
           <p className="text-sm font-medium text-[#D5B45C]">★ Best time</p>
           <h2 id="best-heading" className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">
-            {DAY_NAME[best.day]} · {formatTime(best.startTime)}–{formatTime(best.endTime)}
+            {DAY_NAME[best.slot.day]} · {formatTime(best.slot.startTime)}–{formatTime(best.slot.endTime)}
           </h2>
           <p className="text-[#F5F2FA]/90">
-            {best.isFullTeam
-              ? peopleWithTimes.length === 2
+            {best.everyone
+              ? poll.people.length === 2
                 ? "You're both free."
                 : "Everyone is free."
-              : `${best.availableMemberIds.length} of ${peopleWithTimes.length} can make it. ${joinNames(missing)} can't.`}
+              : [
+                  `${best.attendees.length} of ${poll.people.length} can make it.`,
+                  best.busy.length > 0 && `${joinNames(best.busy.map((p) => firstName(p.name)))} can't.`,
+                  best.noTimes.length > 0 &&
+                    `${joinNames(best.noTimes.map((p) => firstName(p.name)))} ${best.noTimes.length === 1 ? "hasn't" : "haven't"} marked any free times.`,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
           </p>
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => update({ chosen: { day: best.day, startTime: best.startTime, endTime: best.endTime } })}
+              onClick={confirm}
               className={primaryButton}
             >
               This works
@@ -269,7 +305,7 @@ export function QuickMeetView() {
             </button>
           </div>
         </section>
-      ) : peopleWithTimes.length >= 2 ? (
+      ) : poll.people.length >= 2 && anyTimes ? (
         <section className="space-y-2 border-l-2 border-[#D5B45C] pl-5">
           <h2 className="font-heading text-2xl font-bold text-[#F5F2FA]">No time works for everyone yet.</h2>
           <p className="text-[#AAA5B4]">Try a shorter meeting, or ask people to add a few more hours.</p>
