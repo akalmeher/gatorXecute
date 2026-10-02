@@ -58,3 +58,115 @@ body {
     padding-right: 2rem;
   }
 }
+
+/* Micro-animations and tactile interactions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(213, 180, 92, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(213, 180, 92, 0);
+  }
+}
+
+@keyframes pulsePurple {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(184, 166, 255, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(184, 166, 255, 0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-gold {
+  animation: pulseGold 2.2s infinite;
+}
+
+.pulse-purple {
+  animation: pulsePurple 2.2s infinite;
+}
+
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: #d5b45c;
+  color: #0f1117;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 14px -2px rgba(213, 180, 92, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.btn-gold:hover {
+  background-color: #e2c36e;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -2px rgba(213, 180, 92, 0.4);
+}
+.btn-gold:active {
+  transform: scale(0.97);
+}
+
+.btn-purple-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(184, 166, 255, 0.4);
+  background-color: rgba(184, 166, 255, 0.06);
+  color: #f5f2fa;
+  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.btn-purple-outline:hover {
+  border-color: #b8a6ff;
+  background-color: rgba(184, 166, 255, 0.15);
+  transform: translateY(-1px);
+}
+.btn-purple-outline:active {
+  transform: scale(0.97);
+}

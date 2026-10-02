@@ -15,9 +15,9 @@ import { toIsoDay, todayIsoDay } from "./plan-validation";
  */
 
 export const primaryButton =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#B8A6FF] px-5 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-wait cursor-pointer transition";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#D5B45C] px-5 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#E2C36E] active:scale-[0.97] shadow-md shadow-[#D5B45C]/20 hover:shadow-lg hover:shadow-[#D5B45C]/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D5B45C]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1117] disabled:opacity-60 disabled:cursor-wait cursor-pointer transition-all duration-200";
 export const secondaryButton =
-  "inline-flex items-center justify-center rounded-xl bg-[#1D202A] px-5 py-2.5 text-sm font-medium text-[#F5F2FA] hover:bg-[#2A2E39] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer transition";
+  "inline-flex items-center justify-center rounded-xl border border-[#B8A6FF]/40 bg-[#171A23] px-5 py-2.5 text-sm font-medium text-[#F5F2FA] hover:border-[#B8A6FF] hover:bg-[#B8A6FF]/15 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer transition-all duration-200";
 export const quietButton =
   "inline-flex items-center rounded-lg px-2 py-1 text-sm text-[#AAA5B4] underline-offset-4 hover:text-[#F5F2FA] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 disabled:opacity-60 cursor-pointer";
 export const sectionLabel = "text-xs font-semibold uppercase tracking-[0.14em] text-[#AAA5B4]";

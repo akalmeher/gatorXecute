@@ -113,11 +113,11 @@ export function StartView() {
         {/* Door 1: Quick Meet */}
         <Link
           href="/meet"
-          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-200 hover:border-[#B8A6FF]/60 hover:bg-[#1A1D27] shadow-sm"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#B8A6FF]/70 hover:bg-[#1A1D27] shadow-sm hover-lift"
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF] group-hover:scale-105 transition">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF] group-hover:scale-105 transition-transform">
                 <CalendarClockIcon className="h-6 w-6" />
               </span>
               <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#B8A6FF]">
@@ -142,19 +142,19 @@ export function StartView() {
         {/* Door 2: Project Plan */}
         <Link
           href="/plan"
-          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-200 hover:border-[#B8A6FF]/60 hover:bg-[#1A1D27] shadow-sm"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#D5B45C]/70 hover:bg-[#1A1D27] shadow-sm hover-lift"
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D5B45C]/10 text-[#D5B45C] group-hover:scale-105 transition">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D5B45C]/10 text-[#D5B45C] group-hover:scale-105 transition-transform">
                 <ClipboardListIcon className="h-6 w-6" />
               </span>
-              <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#D5B45C]">
+              <span className="inline-flex items-center rounded-full border border-[#D5B45C]/30 bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-semibold text-[#D5B45C]">
                 {deadline ? `Target: ${formatDay(deadline)}` : "In Progress"}
               </span>
             </div>
             <div>
-              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#B8A6FF] transition truncate">
+              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#D5B45C] transition truncate">
                 {project.course ? project.course : project.name}
               </h2>
               <p className="mt-1 text-sm text-[#AAA5B4] truncate">
@@ -168,7 +168,7 @@ export function StartView() {
                 ? (mineOpen.length === 1 ? "1 task for you" : `${mineOpen.length} tasks for you`)
                 : `${open.length} active tasks`}
             </span>
-            <div className="flex items-center text-sm font-semibold text-[#B8A6FF] group-hover:translate-x-1 transition duration-200">
+            <div className="flex items-center text-sm font-semibold text-[#D5B45C] group-hover:translate-x-1 transition duration-200">
               <span>Open project plan</span>
               <ArrowRightIcon className="ml-1.5 h-4 w-4" />
             </div>

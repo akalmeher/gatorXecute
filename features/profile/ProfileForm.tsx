@@ -16,9 +16,9 @@ import { TagInput } from "./TagInput";
 const field =
   "w-full rounded-xl border border-[#2A2E39] bg-[#171A23] px-4 py-3 text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60";
 const primary =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#B8A6FF] px-5 py-3 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-[#D5B45C] px-5 py-3 text-sm font-semibold text-[#0F1117] hover:bg-[#E2C36E] active:scale-[0.97] shadow-md shadow-[#D5B45C]/20 hover:shadow-lg hover:shadow-[#D5B45C]/35 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D5B45C]/60 transition-all duration-200";
 const secondary =
-  "inline-flex items-center justify-center gap-2 rounded-xl border border-[#2A2E39] px-4 py-3 text-sm font-medium text-[#F5F2FA] hover:border-[#B8A6FF]/50 disabled:opacity-60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60";
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-[#B8A6FF]/40 bg-[#171A23] px-4 py-3 text-sm font-medium text-[#F5F2FA] hover:border-[#B8A6FF] hover:bg-[#B8A6FF]/15 active:scale-[0.97] disabled:opacity-60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]/60 transition-all duration-200";
 
 interface ProfileFormProps {
   initial?: Profile | null;
