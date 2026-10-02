@@ -21,6 +21,7 @@ interface ProjectContextValue {
   addMember: (member: Member) => void;
   updateMemberAvailability: (memberId: string, blocks: AvailabilityBlock[]) => void;
   addAsyncUpdate: (update: Omit<AsyncUpdate, "id" | "createdAt">) => void;
+  removeMemberMeetingUpdates: (memberId: string, meetingId: string) => void;
   getMemberById: (id?: string) => Project["members"][number] | undefined;
 }
 
@@ -164,6 +165,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const removeMemberMeetingUpdates = (memberId: string, meetingId: string) => {
+    setProject((prev) => ({
+      ...prev,
+      asyncUpdates: prev.asyncUpdates.filter(
+        (u) => !(u.memberId === memberId && u.meetingId === meetingId && u.type === "cant_attend")
+      ),
+    }));
+  };
+
   const updateMemberAvailability = (
     memberId: string,
     blocks: AvailabilityBlock[]
@@ -201,6 +211,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         loadProject,
         addMember,
         addAsyncUpdate,
+        removeMemberMeetingUpdates,
         updateMemberAvailability,
         getMemberById,
       }}

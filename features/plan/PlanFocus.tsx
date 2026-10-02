@@ -50,10 +50,9 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
   const steps = orderSteps(project.tasks, project.members);
   const open = steps.filter((s) => s.state !== "done");
   const mine = me ? open.filter((s) => s.task.ownerId === me.id) : [];
-  const next =
-    mine.find((s) => s.state === "doing" || s.state === "ready") ??
-    mine[0] ??
-    open.find((s) => s.state === "doing" || s.state === "ready");
+  const next = me
+    ? mine.find((s) => s.state === "doing" || s.state === "ready") ?? mine[0]
+    : open.find((s) => s.state === "doing" || s.state === "ready") ?? open[0];
   const problems = findPlanProblems(project.tasks, today);
   const attention = problems.filter(needsAttention).slice(0, 2);
   const waiting = showWaiting ? problems.find((p) => !needsAttention(p)) : undefined;
@@ -193,10 +192,18 @@ export function PlanFocus({ project, me, replan, replaceTasks, updateTaskStatus,
             </button>
           </div>
         </section>
+      ) : me && open.length > 0 ? (
+        <section aria-labelledby="next-heading" className="space-y-1">
+          <p className={sectionLabel}>Your next step</p>
+          <h2 id="next-heading" className="font-heading text-2xl font-bold text-[#F5F2FA]">
+            You&apos;re caught up.
+          </h2>
+          <p className="text-sm text-[#AAA5B4]">No assigned steps need your attention right now.</p>
+        </section>
       ) : (
-        <section className="space-y-1">
+        <section aria-labelledby="next-heading" className="space-y-1">
           <p className={sectionLabel}>Next</p>
-          <h2 className="font-heading text-2xl font-bold text-[#F5F2FA]">Everything is done.</h2>
+          <h2 id="next-heading" className="font-heading text-2xl font-bold text-[#F5F2FA]">Everything is done.</h2>
         </section>
       )}
 

@@ -31,7 +31,7 @@ const inputClass =
   "w-full rounded-xl border border-[#2A2E39] bg-[#171A23] px-3 py-2 text-sm text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]";
 
 export function MeetingCatchUpView() {
-  const { project, addAsyncUpdate, getMemberById } = useProject();
+  const { project, addAsyncUpdate, removeMemberMeetingUpdates, getMemberById } = useProject();
   const { memberId } = useCurrentMember();
   const CURRENT_MEMBER_ID = memberId ?? DEFAULT_MEMBER_ID;
   const shareCheck = useShareCheck();
@@ -56,6 +56,24 @@ export function MeetingCatchUpView() {
   const alreadyReported = meetingUpdates.some(
     (u) => u.memberId === CURRENT_MEMBER_ID && u.type === "cant_attend"
   );
+
+  // Derive attendance: members who sent cant_attend are excluded from attending
+  const absentMemberIds = Array.from(
+    new Set(
+      meetingUpdates
+        .filter((u) => u.type === "cant_attend")
+        .map((u) => u.memberId)
+    )
+  );
+  const attendingIds = meeting
+    ? meeting.attendeeIds.filter((id) => !absentMemberIds.includes(id))
+    : [];
+
+  const handleReversal = () => {
+    if (!meeting) return;
+    removeMemberMeetingUpdates(CURRENT_MEMBER_ID, meeting.id);
+    setSuccess(false);
+  };
 
   const post = (content: string) => {
     if (!meeting) return;
@@ -157,12 +175,18 @@ export function MeetingCatchUpView() {
             <p className="text-sm text-[#AAA5B4]">
               {meeting.scheduledTime} • {meeting.durationMinutes} minutes
             </p>
-            <p className="text-xs text-[#AAA5B4]">
-              Attendees:{" "}
-              {meeting.attendeeIds
-                .map((id) => getMemberById(id)?.name ?? id)
-                .join(", ") || "none yet"}
-            </p>
+            <div className="space-y-1 text-xs text-[#AAA5B4]">
+              <p>
+                <strong className="text-[#F5F2FA]">Attending:</strong>{" "}
+                {attendingIds.map((id) => getMemberById(id)?.name ?? id).join(", ") || "none yet"}
+              </p>
+              {absentMemberIds.length > 0 && (
+                <p>
+                  <strong className="text-[#D5B45C]">Can&apos;t attend:</strong>{" "}
+                  {absentMemberIds.map((id) => getMemberById(id)?.name ?? id).join(", ")}
+                </p>
+              )}
+            </div>
           </div>
 
           {!formOpen && (
@@ -178,7 +202,17 @@ export function MeetingCatchUpView() {
                 {alreadyReported ? "Add another update" : "I can't make it"}
               </button>
               {alreadyReported && (
-                <span className="text-xs text-[#B8A6FF]">✓ Absence recorded</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-[#B8A6FF]">✓ Absence recorded</span>
+                  <span className="text-[#2A2E39]">·</span>
+                  <button
+                    type="button"
+                    onClick={handleReversal}
+                    className="text-[#AAA5B4] underline hover:text-[#F5F2FA] transition cursor-pointer"
+                  >
+                    Actually, I can make it
+                  </button>
+                </div>
               )}
             </div>
           )}

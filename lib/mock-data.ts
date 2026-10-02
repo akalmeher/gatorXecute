@@ -133,7 +133,7 @@ export const SEEDED_MEETINGS: Meeting[] = [
     title: "Sprint 1 Sync & Architecture Hand-off",
     scheduledTime: "Thursday, Oct 9 • 3:30 PM – 4:15 PM",
     durationMinutes: 45,
-    attendeeIds: ["mem-ammar", "mem-divij", "mem-oscar"],
+    attendeeIds: ["mem-ammar", "mem-divij", "mem-oscar", "mem-shreya"],
     agendaItems: [
       "Review component boundaries and shared types",
       "API route contracts for session state",
@@ -166,5 +166,5 @@ export const INITIAL_DEMO_PROJECT: Project = {
   tasks: SEEDED_TASKS,
   availability: SEEDED_AVAILABILITY,
   meetings: SEEDED_MEETINGS,
-  asyncUpdates: SEEDED_ASYNC_UPDATES,
+  asyncUpdates: [],
 };
