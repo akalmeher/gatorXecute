@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Project, TaskStatus, AsyncUpdate } from "@/types";
+import { Project, TaskStatus, AsyncUpdate, AvailabilityBlock } from "@/types";
 import { INITIAL_DEMO_PROJECT } from "@/lib/mock-data";
 
 interface ProjectContextValue {
   project: Project;
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   updateTaskOwner: (taskId: string, ownerId: string) => void;
+  updateMemberAvailability: (memberId: string, blocks: AvailabilityBlock[]) => void;
   addAsyncUpdate: (update: Omit<AsyncUpdate, "id" | "createdAt">) => void;
   getMemberById: (id?: string) => Project["members"][number] | undefined;
 }
@@ -47,6 +48,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const updateMemberAvailability = (
+  memberId: string,
+  blocks: AvailabilityBlock[]
+) => {
+  setProject((prev) => ({
+    ...prev,
+
+    availability: [
+      ...prev.availability.filter(
+        (block) => block.memberId !== memberId
+      ),
+
+      ...blocks,
+    ],
+  }));
+};
+
   const getMemberById = (id?: string) => {
     if (!id) return undefined;
     return project.members.find((m) => m.id === id);
@@ -59,6 +77,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         updateTaskStatus,
         updateTaskOwner,
         addAsyncUpdate,
+        updateMemberAvailability,
         getMemberById,
       }}
     >
