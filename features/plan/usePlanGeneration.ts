@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Project, Task } from "@/types";
-import type { PlanErrorResponse, PlanMode, PlanRequest, PlanResponse, PlanSource } from "./plan-types";
+import type {
+  PlanAssignment,
+  PlanErrorResponse,
+  PlanMode,
+  PlanRequest,
+  PlanResponse,
+  PlanSource,
+  PlanUnderstanding,
+} from "./plan-types";
 
 /**
  * Feature Owner: Divij Anand
@@ -14,13 +22,15 @@ export interface PlanDraft {
   source: PlanSource;
   model?: string;
   tasks: Task[];
+  understanding?: PlanUnderstanding;
 }
 
 type PlanError = Pick<PlanErrorResponse, "error" | "message" | "issues">;
 
-function toPlanRequest(project: Project, mode: PlanMode): PlanRequest {
+function toPlanRequest(project: Project, mode: PlanMode, assignment?: PlanAssignment): PlanRequest {
   return {
     mode,
+    assignment,
     project: {
       id: project.id,
       name: project.name,
@@ -47,7 +57,7 @@ export function usePlanGeneration(project: Project) {
   useEffect(() => () => inFlight.current?.abort(), []);
 
   const generate = useCallback(
-    async (mode: PlanMode) => {
+    async (mode: PlanMode, assignment?: PlanAssignment) => {
       // Duplicate-click protection: ignore requests while one is running.
       if (inFlight.current) return;
       const controller = new AbortController();
@@ -59,12 +69,12 @@ export function usePlanGeneration(project: Project) {
         const response = await fetch("/api/plan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(toPlanRequest(project, mode)),
+          body: JSON.stringify(toPlanRequest(project, mode, assignment)),
           signal: controller.signal,
         });
         const body = (await response.json()) as PlanResponse;
         if (body.ok) {
-          setDraft({ source: body.source, model: body.model, tasks: body.tasks });
+          setDraft({ source: body.source, model: body.model, tasks: body.tasks, understanding: body.understanding });
         } else {
           setError({ error: body.error, message: body.message, issues: body.issues });
         }

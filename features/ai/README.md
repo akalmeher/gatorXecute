@@ -29,6 +29,25 @@ GEMINI_THINKING_LEVEL=...     # optional, default low (fast: ~1-4s); "off" to di
 
 Types: `features/plan/plan-types.ts`. Used by `/plan`.
 
+- Optional `assignment: { text?, file?: { name, mimeType, data } }`: pasted
+  instructions and/or a PDF/text file (base64, max 4 MB). Gemini reads it directly.
+- Response adds `understanding` ("Got it. Here's what I found"): `kind`, `summary`,
+  `deliverables`, `milestones`, `finalDeadline`. If the assignment's deadline is
+  earlier than the project deadline, the plan follows the earlier date.
+- Steps are shaped to the kind of work (film, paper, presentation, study group, ...).
+
+## POST /api/replan
+
+Types: `features/plan/replan-types.ts`. Used by the Plan page.
+
+- Problems are found with plain rules (`plan-health.ts`): late, stuck with
+  nothing to wait for, or unowned. Gemini only proposes the fix.
+- Request: `{ project, tasks, concern?, avoid? }`. `concern` is a student note
+  ("Oscar is out sick until Thursday"); `avoid` lists proposals already shown.
+- Response `suggestion`: `{ headline, situation, proposal, changes[{ taskId, ownerId?, dueDate?, why }], outcome, onTrack }`.
+- Every change is checked in code (real steps and members, nothing done changes,
+  dates between today and the deadline, order kept). Applied only on "Use suggestion".
+
 ## POST /api/catch-up (for Shreya): "Here's what you missed"
 
 Types: `features/ai/catch-up-types.ts`.

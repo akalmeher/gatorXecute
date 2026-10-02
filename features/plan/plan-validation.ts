@@ -1,5 +1,6 @@
 import type { Task, TaskStatus } from "@/types";
-import type { PlanMember, PlanMode, PlanRequest } from "./plan-types";
+import type { PlanAssignment, PlanMember, PlanMode, PlanRequest } from "./plan-types";
+import { ASSIGNMENT_FILE_TYPES, MAX_ASSIGNMENT_FILE_BYTES, MAX_ASSIGNMENT_TEXT_CHARS } from "./plan-types";
 
 /**
  * Feature Owner: Divij Anand
@@ -65,13 +66,48 @@ function nonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-export function parsePlanRequest(body: unknown): ValidationResult<Required<PlanRequest>> {
+function parseAssignment(value: unknown, issues: string[]): PlanAssignment | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object") {
+    issues.push("assignment must be an object.");
+    return undefined;
+  }
+  const a = value as Record<string, unknown>;
+  const assignment: PlanAssignment = {};
+  if (a.text !== undefined) {
+    if (typeof a.text !== "string") issues.push("assignment.text must be a string.");
+    else if (a.text.length > MAX_ASSIGNMENT_TEXT_CHARS) issues.push("The pasted assignment is too long. Try uploading it as a file.");
+    else if (a.text.trim()) assignment.text = a.text.trim();
+  }
+  if (a.file !== undefined && a.file !== null) {
+    const file = a.file as Record<string, unknown>;
+    if (!nonEmptyString(file.mimeType) || !ASSIGNMENT_FILE_TYPES.includes(file.mimeType)) {
+      issues.push("The assignment file must be a PDF or a text file.");
+    } else if (!nonEmptyString(file.data) || !/^[A-Za-z0-9+/]+=*$/.test(file.data)) {
+      issues.push("The assignment file could not be read.");
+    } else if (Math.floor((file.data.length * 3) / 4) > MAX_ASSIGNMENT_FILE_BYTES) {
+      issues.push("The assignment file is larger than 4 MB.");
+    } else {
+      assignment.file = {
+        name: typeof file.name === "string" ? file.name.slice(0, 200) : "assignment",
+        mimeType: file.mimeType,
+        data: file.data,
+      };
+    }
+  }
+  return assignment.text || assignment.file ? assignment : undefined;
+}
+
+export function parsePlanRequest(
+  body: unknown
+): ValidationResult<Required<Omit<PlanRequest, "assignment">> & Pick<PlanRequest, "assignment">> {
   const issues: string[] = [];
   if (typeof body !== "object" || body === null) {
     return { ok: false, issues: ["Request body must be a JSON object."] };
   }
 
-  const { project, mode } = body as Record<string, unknown>;
+  const { project, mode, assignment: rawAssignment } = body as Record<string, unknown>;
+  const assignment = parseAssignment(rawAssignment, issues);
   const parsedMode: PlanMode = mode === "demo" ? "demo" : "live";
   if (mode !== undefined && mode !== "live" && mode !== "demo") {
     issues.push('mode must be "live" or "demo".');
@@ -118,6 +154,7 @@ export function parsePlanRequest(body: unknown): ValidationResult<Required<PlanR
     ok: true,
     value: {
       mode: parsedMode,
+      assignment,
       project: {
         id: p.id as string,
         name: p.name as string,

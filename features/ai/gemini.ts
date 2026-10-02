@@ -46,6 +46,13 @@ interface GenerateJsonOptions {
   /** Gemini responseSchema (OpenAPI subset) describing the expected JSON. */
   responseSchema: Record<string, unknown>;
   temperature?: number;
+  /** Files sent alongside the prompt, e.g. an assignment PDF (base64 data). */
+  attachments?: GeminiAttachment[];
+}
+
+export interface GeminiAttachment {
+  mimeType: string;
+  data: string;
 }
 
 interface GeminiResponseBody {
@@ -62,6 +69,7 @@ export async function generateGeminiJson({
   prompt,
   responseSchema,
   temperature = 0.4,
+  attachments = [],
 }: GenerateJsonOptions): Promise<{ data: unknown; model: string }> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
@@ -80,7 +88,15 @@ export async function generateGeminiJson({
       },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemInstruction }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        contents: [
+          {
+            role: "user",
+            parts: [
+              ...attachments.map(({ mimeType, data }) => ({ inlineData: { mimeType, data } })),
+              { text: prompt },
+            ],
+          },
+        ],
         generationConfig: {
           temperature,
           responseMimeType: "application/json",
@@ -139,6 +155,7 @@ export async function generateValidatedGeminiJson<T>({
   responseSchema,
   validate,
   temperature,
+  attachments,
   maxAttempts = 2,
 }: {
   systemInstruction: string;
@@ -146,6 +163,7 @@ export async function generateValidatedGeminiJson<T>({
   responseSchema: Record<string, unknown>;
   validate: (data: unknown) => { ok: true; value: T } | { ok: false; issues: string[] };
   temperature?: number;
+  attachments?: GeminiAttachment[];
   maxAttempts?: number;
 }): Promise<GeminiValidationOutcome<T>> {
   if (!hasGeminiKey()) {
@@ -160,6 +178,7 @@ export async function generateValidatedGeminiJson<T>({
         prompt: buildPrompt(issues),
         responseSchema,
         temperature,
+        attachments,
       });
       const result = validate(data);
       if (result.ok) return { ok: true, value: result.value, model };

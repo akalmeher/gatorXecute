@@ -8,6 +8,9 @@ import { PlanTimeline } from "./PlanTimeline";
 import { usePlanGeneration } from "./usePlanGeneration";
 import { toIsoDay, validatePlanTasks } from "./plan-validation";
 import { PlanRecovery } from "./PlanRecovery";
+import { AssignmentInput } from "./AssignmentInput";
+import { FoundSummary } from "./FoundSummary";
+import type { PlanAssignment } from "./plan-types";
 import { describeDraft, describePlanStatus, firstName, formatDay, orderSteps } from "./plan-display";
 
 /**
@@ -31,6 +34,9 @@ export function ProjectPlanView() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [acceptIssues, setAcceptIssues] = useState<string[]>([]);
   const [justAccepted, setJustAccepted] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const [assignment, setAssignment] = useState<PlanAssignment>({});
+  const hasAssignment = Boolean(assignment.file || assignment.text?.trim());
 
   const currentSteps = useMemo(() => orderSteps(project.tasks, project.members), [project.tasks, project.members]);
   const draftSteps = useMemo(
@@ -44,7 +50,8 @@ export function ProjectPlanView() {
     setAcceptIssues([]);
     setJustAccepted(false);
     setIsReviewing(false);
-    void generate(mode);
+    setIsComposing(false);
+    void generate(mode, hasAssignment ? { file: assignment.file, text: assignment.text?.trim() || undefined } : undefined);
   };
 
   const handleAccept = () => {
@@ -91,7 +98,9 @@ export function ProjectPlanView() {
         <div className="flex items-center gap-4 py-6">
           <span className="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-[#B8A6FF]/30 border-t-[#B8A6FF]" />
           <div>
-            <p className="font-heading text-xl font-semibold text-[#F5F2FA]">Reading the assignment…</p>
+            <p className="font-heading text-xl font-semibold text-[#F5F2FA]">
+              {hasAssignment ? "Reading the assignment…" : "Drafting a plan…"}
+            </p>
             <p className="text-sm text-[#AAA5B4]">Working out the steps and who could take each one.</p>
           </div>
         </div>
@@ -132,10 +141,23 @@ export function ProjectPlanView() {
       {draft && !isGenerating ? (
         /* Draft: answer first, details on request */
         <section className="space-y-8" aria-labelledby="draft-heading">
+          {draft.understanding?.fromAssignment && (
+            <div className="space-y-4">
+              <h2 id="draft-heading" className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">
+                Got it. Here&apos;s what I found.
+              </h2>
+              <FoundSummary understanding={draft.understanding} projectDeadline={toIsoDay(project.deadline)} />
+            </div>
+          )}
+
           <div className="space-y-3">
-            <h2 id="draft-heading" className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">
-              {draft.source === "gemini" ? "I've drafted a plan for your team." : "Here's a starter plan."}
-            </h2>
+            {draft.understanding?.fromAssignment ? (
+              <h3 className="font-heading text-xl font-semibold text-[#F5F2FA]">I&apos;ve drafted a plan for your team.</h3>
+            ) : (
+              <h2 id="draft-heading" className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">
+                {draft.source === "gemini" ? "I've drafted a plan for your team." : "Here's a starter plan."}
+              </h2>
+            )}
             <p className="text-lg text-[#F5F2FA]/90">{describeDraft(draft.tasks, project.members)}</p>
             <p className="text-sm text-[#AAA5B4]">
               {draft.source === "gemini"
@@ -234,12 +256,26 @@ export function ProjectPlanView() {
             <PlanTimeline steps={currentSteps} />
           </div>
 
-          <p className="text-sm text-[#AAA5B4]">
-            Plans changed a lot?{" "}
-            <button type="button" onClick={() => startDraft("live")} className={quietButton}>
-              Draft a fresh plan
-            </button>
-          </p>
+          {isComposing ? (
+            <div className="space-y-4 border-t border-[#2A2E39] pt-8">
+              <AssignmentInput value={assignment} onChange={setAssignment} />
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" onClick={() => startDraft("live")} className={primaryButton}>
+                  Draft a fresh plan
+                </button>
+                <button type="button" onClick={() => setIsComposing(false)} className={quietButton}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-[#AAA5B4]">
+              Plans changed a lot?{" "}
+              <button type="button" onClick={() => setIsComposing(true)} className={quietButton}>
+                Draft a fresh plan
+              </button>
+            </p>
+          )}
         </section>
       ) : !isGenerating && !error ? (
         /* No plan yet */
@@ -250,6 +286,7 @@ export function ProjectPlanView() {
               I&apos;ll draft one from your assignment, deadline, and team. You can change anything before it&apos;s used.
             </p>
           </div>
+          <AssignmentInput value={assignment} onChange={setAssignment} />
           <button type="button" onClick={() => startDraft("live")} className={primaryButton}>
             Draft a plan
           </button>
