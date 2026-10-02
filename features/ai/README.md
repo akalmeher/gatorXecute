@@ -46,8 +46,8 @@ Gemini); every other route uses **Gemini**.
 | `POST /api/progress-update` | + Update, + Coordinate | "finished the research btw" → proposed status changes | yes |
 | `POST /api/availability` | Quick Meet (and Oscar's grid) | "free after 4 except Wed" or a class schedule → grid blocks | yes |
 | `POST /api/coordinate` | + Coordinate box | Infers intent: meet / project / update / help | yes |
-| `POST /api/catch-up` | Meetings (for Shreya) | "Here's what you missed": decided, changed, your part | yes |
-| `POST /api/meeting-brief` | Meetings (for Shreya) | "Worth discussing": only what needs the group live | yes |
+| `POST /api/catch-up` | Meetings (Worth discussing, Catch me up) | "Here's what you missed": decided, changed, your part | yes |
+| `POST /api/meeting-brief` | Meetings (Worth discussing, Catch me up) | "Worth discussing": only what needs the group live | yes |
 | `POST /api/share-check` | + Update, + Coordinate | Personal message? → what teammates see (discreet by default), away dates, a kind word, support if needed | yes |
 | `GET /api/health` | before a demo | `{status:"ready", models:[…]}` for Gemini and Gemma 4; never exposes the key | n/a |
 

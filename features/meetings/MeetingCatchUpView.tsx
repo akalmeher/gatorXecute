@@ -2,23 +2,41 @@
 
 import React, { useRef, useState } from "react";
 import { useProject } from "@/context/ProjectContext";
+import { useCurrentMember } from "@/features/identity/useCurrentMember";
+import type { ShareCheck } from "@/features/ai/share-check-types";
+import { mentionsPersonal } from "@/features/ai/care";
+import { useShareCheck } from "@/features/care/useShareCheck";
+import { SupportNote } from "@/features/care/SupportNote";
+import { ShareChoice } from "@/features/care/ShareChoice";
+import { WorthDiscussing } from "./WorthDiscussing";
+import { CatchUpPanel } from "./CatchUpPanel";
 
 /**
  * Feature Owner: Shreya Rameshwar
  * Domain: Meeting flow, async updates, Can't Attend flow, catch-up interface.
  *
  * Barebones pass: meeting card + empty state, "I can't make it" form, and
- * submitted updates for the current meeting. Catch-up summary comes later.
+ * submitted updates for the current meeting.
+ *
+ * AI (Divij): "What's worth discussing?" (/api/meeting-brief), "Catch me up"
+ * (/api/catch-up), and care for personal reasons in "I can't make it": the
+ * team sees a discreet version unless the student chooses otherwise.
  */
 
-// No auth in the MVP, so "you" is fixed for now.
-const CURRENT_MEMBER_ID = "mem-shreya";
+// No auth in the MVP: use the remembered identity, else this default.
+const DEFAULT_MEMBER_ID = "mem-shreya";
 
 const inputClass =
   "w-full rounded-xl border border-[#2A2E39] bg-[#171A23] px-3 py-2 text-sm text-[#F5F2FA] placeholder:text-[#AAA5B4]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8A6FF]";
 
 export function MeetingCatchUpView() {
   const { project, addAsyncUpdate, getMemberById } = useProject();
+  const { memberId } = useCurrentMember();
+  const CURRENT_MEMBER_ID = memberId ?? DEFAULT_MEMBER_ID;
+  const shareCheck = useShareCheck();
+  const [care, setCare] = useState<{ check: ShareCheck; content: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [agendaOverride, setAgendaOverride] = useState<string[] | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [progress, setProgress] = useState("");
@@ -29,6 +47,7 @@ export function MeetingCatchUpView() {
   const submitLock = useRef(false);
 
   const meeting = project.meetings[0];
+  const agendaItems = agendaOverride ?? meeting?.agendaItems ?? [];
 
   const meetingUpdates = meeting
     ? project.asyncUpdates.filter((u) => u.meetingId === meeting.id)
@@ -37,7 +56,25 @@ export function MeetingCatchUpView() {
     (u) => u.memberId === CURRENT_MEMBER_ID && u.type === "cant_attend"
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const post = (content: string) => {
+    if (!meeting) return;
+    addAsyncUpdate({
+      projectId: project.id,
+      memberId: CURRENT_MEMBER_ID,
+      meetingId: meeting.id,
+      type: "cant_attend",
+      content,
+    });
+    setProgress("");
+    setBlockers("");
+    setQuestions("");
+    setError(null);
+    setCare(null);
+    setFormOpen(false);
+    setSuccess(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!meeting || submitLock.current) return;
 
@@ -60,25 +97,27 @@ export function MeetingCatchUpView() {
     }
 
     submitLock.current = true;
-    addAsyncUpdate({
-      projectId: project.id,
-      memberId: CURRENT_MEMBER_ID,
-      meetingId: meeting.id,
-      type: "cant_attend",
-      content,
-    });
-    setProgress("");
-    setBlockers("");
-    setQuestions("");
-    setError(null);
-    setFormOpen(false);
-    setSuccess(true);
+    // Personal reasons (illness, family, grief) are never shared as written by
+    // default: the student sees what the team will read and chooses.
+    if (mentionsPersonal(content)) {
+      setChecking(true);
+      const name = getMemberById(CURRENT_MEMBER_ID)?.name ?? "A teammate";
+      const check = await shareCheck(content, name);
+      setChecking(false);
+      submitLock.current = false;
+      if (check.personal) {
+        setCare({ check, content });
+        return;
+      }
+    }
+    post(content);
     submitLock.current = false;
   };
 
   // Cancel closes the form but keeps whatever was typed.
   const handleCancel = () => {
     setError(null);
+    setCare(null);
     setFormOpen(false);
   };
 
@@ -200,12 +239,28 @@ export function MeetingCatchUpView() {
               </p>
             )}
 
-            <div className="flex gap-3">
+            {care && (
+              <div className="space-y-3">
+                <SupportNote wellbeing={care.check.wellbeing} acknowledgement={care.check.acknowledgement} />
+                <ShareChoice
+                  shareable={care.check.shareable}
+                  original={care.content}
+                  onShare={post}
+                  onSkip={() => {
+                    setCare(null);
+                    setFormOpen(false);
+                  }}
+                />
+              </div>
+            )}
+
+            <div className={care ? "hidden" : "flex gap-3"}>
               <button
                 type="submit"
+                disabled={checking}
                 className="rounded-xl bg-[#B8A6FF] px-4 py-2.5 text-sm font-semibold text-[#0F1117] hover:bg-[#B8A6FF]/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5F2FA]"
               >
-                Send update
+                {checking ? "Checking…" : "Send update"}
               </button>
               <button
                 type="button"
@@ -220,11 +275,11 @@ export function MeetingCatchUpView() {
 
         <div className="space-y-3">
           <h3 className="font-heading text-sm font-semibold text-[#F5F2FA]">Agenda items</h3>
-          {meeting.agendaItems.length === 0 ? (
+          {agendaItems.length === 0 ? (
             <p className="text-sm text-[#AAA5B4]">No agenda has been added yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {meeting.agendaItems.map((item, idx) => (
+              {agendaItems.map((item, idx) => (
                 <div
                   key={idx}
                   className="rounded-xl border border-[#2A2E39] bg-[#1D202A] p-4 flex items-start gap-3"
@@ -237,7 +292,10 @@ export function MeetingCatchUpView() {
               ))}
             </div>
           )}
+          <WorthDiscussing project={project} meeting={meeting} onUse={setAgendaOverride} />
         </div>
+
+        <CatchUpPanel project={project} meeting={meeting} memberId={CURRENT_MEMBER_ID} />
       </div>
 
       <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8 space-y-6">
@@ -274,8 +332,8 @@ export function MeetingCatchUpView() {
                         {update.type === "cant_attend" ? "Can't attend" : update.type}
                       </span>
                     </div>
-                    <span className="text-xs text-[#AAA5B4] shrink-0">
-                      {new Date(update.createdAt).toLocaleString([], {
+                    <span className="text-xs text-[#AAA5B4] shrink-0" suppressHydrationWarning>
+                      {new Date(update.createdAt).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
                         hour: "2-digit",

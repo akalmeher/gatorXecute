@@ -89,7 +89,7 @@ function validateDraft(raw: unknown): ParseResult<ShareCheck> {
 const SYSTEM_INSTRUCTION = `A university student wrote a message in a group-project app. Before anything is shared with their teammates, decide how to handle it with care.
 
 - personal: true if it mentions health, family, grief, money or other private matters.
-- shareable: one short sentence for teammates describing only the effect on the work, starting with the student's first name, e.g. "Divij is away Thursday–Friday for a personal matter." Never include the reason, health or family details, or feelings. If nothing is personal, return the message's gist.
+- shareable: one short sentence for teammates describing only the effect on the work, starting with the student's first name, e.g. "Divij is away Thursday–Friday for a personal matter." Keep any work progress, blockers or questions they mention (e.g. "Divij finished the API route stubs and is away Thursday–Friday."). Never include the reason, health or family details, or feelings. If nothing is personal, return the message's gist.
 - awayFrom / awayTo: inclusive dates (YYYY-MM-DD) they can't work, resolved from today's date, or "" if they didn't say.
 - wellbeing: "crisis" if there is any sign of risk of self-harm; "low" if they sound sad, stressed or grieving; otherwise "none".
 - acknowledgement: if personal, one warm, plain sentence to the student (no advice, no clichés, no questions), e.g. "I'm so sorry about your mom. Take the time you need." Otherwise "".`;
