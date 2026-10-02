@@ -90,14 +90,14 @@ function unpackCells(personId: string, packed: string): AvailabilityBlock[] {
   return cellsToBlocks(personId, cells);
 }
 
-function toBase64Url(text: string): string {
+export function toBase64Url(text: string): string {
   const bytes = new TextEncoder().encode(text);
   let binary = "";
   bytes.forEach((b) => (binary += String.fromCharCode(b)));
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromBase64Url(value: string): string {
+export function fromBase64Url(value: string): string {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
   return new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));

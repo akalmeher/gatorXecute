@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Project, Task, TaskStatus, AsyncUpdate, AvailabilityBlock } from "@/types";
+import { Project, Task, TaskStatus, AsyncUpdate, AvailabilityBlock, Member } from "@/types";
 import { INITIAL_DEMO_PROJECT } from "@/lib/mock-data";
 
 interface ProjectContextValue {
@@ -9,6 +9,10 @@ interface ProjectContextValue {
   updateTaskStatus: (taskId: string, status: TaskStatus) => void;
   updateTaskOwner: (taskId: string, ownerId: string) => void;
   replaceTasks: (tasks: Task[]) => void;
+  /** Use a formed team (Divij: features/team). Work owned by people who left becomes unowned. */
+  replaceMembers: (members: Member[]) => void;
+  /** A formed team starts its own project: fresh steps, meetings and updates; the deadline is kept until the plan sets one. */
+  startProject: (details: { name: string; course?: string; members: Member[] }) => void;
   updateMemberAvailability: (memberId: string, blocks: AvailabilityBlock[]) => void;
   addAsyncUpdate: (update: Omit<AsyncUpdate, "id" | "createdAt">) => void;
   getMemberById: (id?: string) => Project["members"][number] | undefined;
@@ -41,6 +45,39 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject((prev) => ({
       ...prev,
       tasks: newTasks,
+    }));
+  };
+
+  const replaceMembers = (members: Member[]) => {
+    setProject((prev) => {
+      const ids = new Set(members.map((m) => m.id));
+      return {
+        ...prev,
+        members,
+        tasks: prev.tasks.map((task) =>
+          task.ownerId && !ids.has(task.ownerId) ? { ...task, ownerId: undefined } : task
+        ),
+        availability: prev.availability.filter((block) => ids.has(block.memberId)),
+        meetings: prev.meetings.map((meeting) => ({
+          ...meeting,
+          attendeeIds: meeting.attendeeIds.filter((id) => ids.has(id)),
+        })),
+      };
+    });
+  };
+
+  const startProject = ({ name, course, members }: { name: string; course?: string; members: Member[] }) => {
+    setProject((prev) => ({
+      ...prev,
+      id: `proj-${Date.now()}`,
+      name,
+      course: course ?? "",
+      description: course ? `${name} for ${course}` : name,
+      members,
+      tasks: [],
+      availability: [],
+      meetings: [],
+      asyncUpdates: [],
     }));
   };
 
@@ -85,6 +122,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         updateTaskStatus,
         updateTaskOwner,
         replaceTasks,
+        replaceMembers,
+        startProject,
         addAsyncUpdate,
         updateMemberAvailability,
         getMemberById,

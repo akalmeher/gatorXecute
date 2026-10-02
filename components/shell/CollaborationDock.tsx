@@ -10,6 +10,7 @@ import { findPlanProblems, needsAttention, PROBLEM_PHRASE } from "@/features/pla
 import { formatDay, orderSteps } from "@/features/plan/plan-display";
 import { toIsoDay, todayIsoDay } from "@/features/plan/plan-validation";
 import { encodePoll } from "@/features/meet/meet-link";
+import { useProfile } from "@/features/profile/useProfile";
 
 /**
  * Collaboration Dock: "Where am I, and who am I here with?"
@@ -56,6 +57,7 @@ const cardClass =
 export function CollaborationDock() {
   const { project } = useProject();
   const { member: me, setCurrentMember } = useCurrentMember();
+  const { profile } = useProfile();
   const pathname = usePathname();
   const [panel, setPanel] = useState<Panel>(null);
   const dockRef = useRef<HTMLElement>(null);
@@ -142,7 +144,10 @@ export function CollaborationDock() {
               <Link href="/meet" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
                 <span className="text-[#AAA5B4]">○</span> Quick meet
               </Link>
-              <Link href="/#coordinate" onClick={() => setPanel(null)} className="mt-1 block rounded-xl px-2 py-2 text-[#B8A6FF] hover:bg-[#2A2E39]">
+              <Link href="/team" onClick={() => setPanel(null)} className="mt-1 block rounded-xl px-2 py-2 text-[#B8A6FF] hover:bg-[#2A2E39]">
+                + Form a team
+              </Link>
+              <Link href="/#coordinate" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#B8A6FF] hover:bg-[#2A2E39]">
                 + Coordinate something
               </Link>
             </div>
@@ -199,6 +204,9 @@ export function CollaborationDock() {
                     {state.line}
                   </p>
                   {state.detail && <p className="text-[#AAA5B4]">{state.detail}</p>}
+                  {member.skills.length > 0 && (
+                    <p className="mt-2 text-xs text-[#AAA5B4]">Can do: {member.skills.slice(0, 4).join(", ")}</p>
+                  )}
                   {open && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Link
@@ -272,6 +280,12 @@ export function CollaborationDock() {
               >
                 {me ? "Switch person" : "Choose who you are"}
               </button>
+              <Link href="/profile" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
+                {profile ? "Your profile" : "Create your profile"}
+              </Link>
+              <Link href="/team" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
+                Form or join a team
+              </Link>
               <Link href="/project" onClick={() => setPanel(null)} className="block rounded-xl px-2 py-2 text-[#F5F2FA] hover:bg-[#2A2E39]">
                 Team &amp; skills
               </Link>

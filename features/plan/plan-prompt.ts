@@ -23,6 +23,7 @@ Plan rules:
 - Titles are short, plain, and action-first ("Research historical context", "Draft opening slides"). No jargon such as ticket, epic, sprint, backlog, or dependency.
 - Every suggestedOwnerId must be one of the member ids provided. Spread work fairly so no member is overloaded or left out.
 - Choose owners from each member's listed skills AND what they want to learn. Never infer ability from major, role title, or background.
+- A member with no listed skills still gets a fair share: give them steps anyone can start on (research, gathering material, drafting, review), with a neutral reason such as "Open to anyone; a good place to start."
 - practices: if the step lets its owner practice something from THEIR OWN wantsToLearn list, copy that exact item here; otherwise use an empty string. Give every member who has learning goals at least one step that practices one of them, and pair it with work owned by someone experienced in that area.
 - assignmentReason: one short, neutral sentence explaining the fit, referring only to listed skills or learning goals. Never judge, rank, or compare members' ability, productivity, or effort.
 - Use short ids "t1", "t2", ... in order. dependencies may only reference ids of other steps in this plan, and a step may only depend on steps listed before it.
