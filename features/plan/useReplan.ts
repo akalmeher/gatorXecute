@@ -18,17 +18,30 @@ export function useReplan(project: Project) {
   const [source, setSource] = useState<"gemini" | "demo">("gemini");
   const avoid = useRef<string[]>([]);
   const concernRef = useRef<string | undefined>(undefined);
+  const awayRef = useRef<ReplanRequest["away"]>(undefined);
   const inFlight = useRef<AbortController | null>(null);
 
   useEffect(() => () => inFlight.current?.abort(), []);
 
   const request = useCallback(
-    async ({ concern, another = false, mode = "live" }: { concern?: string; another?: boolean; mode?: "live" | "demo" }) => {
+    async ({
+      concern,
+      away,
+      another = false,
+      mode = "live",
+    }: {
+      concern?: string;
+      /** Someone can't work for a while: the plan must never add load or earlier deadlines to them. */
+      away?: ReplanRequest["away"];
+      another?: boolean;
+      mode?: "live" | "demo";
+    }) => {
       if (inFlight.current) return;
       if (another && suggestion) avoid.current = [...avoid.current, suggestion.proposal];
       if (!another) {
         avoid.current = [];
         concernRef.current = concern?.trim() || undefined;
+        awayRef.current = away;
       }
 
       const controller = new AbortController();
@@ -46,6 +59,7 @@ export function useReplan(project: Project) {
         },
         tasks: project.tasks,
         concern: concernRef.current,
+        away: awayRef.current,
         notes: project.asyncUpdates.slice(0, 6).map((update) => ({
           from: project.members.find((m) => m.id === update.memberId)?.name ?? "A teammate",
           text: update.content,

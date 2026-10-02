@@ -90,10 +90,17 @@ export function applyPlanChanges(tasks: Task[], changes: PlanChange[]): Task[] {
  * Checks a proposal against the current plan. Only the changed steps and their
  * neighbors are checked, so older hand-made steps don't block a good fix.
  */
+/** Someone who can't work for a while (inclusive YYYY-MM-DD dates). */
+export interface Absence {
+  memberId: string;
+  from: string;
+  to: string;
+}
+
 export function checkPlanChanges(
   changes: PlanChange[],
   tasks: Task[],
-  context: { memberIds: string[]; deadline?: string; today: string }
+  context: { memberIds: string[]; deadline?: string; today: string; away?: Absence }
 ): string[] {
   const issues: string[] = [];
   const byId = new Map(tasks.map((task) => [task.id, task]));
@@ -142,6 +149,34 @@ export function checkPlanChanges(
       if (next.status !== "done" && next.dependencies.includes(task.id) && next.dueDate && next.dueDate < change.dueDate) {
         issues.push(`"${next.title}" is due before "${task.title}" would be finished; move it too.`);
       }
+    }
+  }
+  if (context.away) issues.push(...checkAbsence(changes, tasks, context.away));
+  return issues;
+}
+
+/**
+ * Someone away gets no new work, no earlier deadlines, and nothing of theirs
+ * left due while they're gone (it's handed off or moved after they return).
+ */
+export function checkAbsence(changes: PlanChange[], tasks: Task[], away: Absence): string[] {
+  const issues: string[] = [];
+  const before = new Map(tasks.map((t) => [t.id, t]));
+  for (const change of changes) {
+    const task = before.get(change.taskId);
+    if (!task) continue;
+    if (change.ownerId === away.memberId && task.ownerId !== away.memberId) {
+      issues.push(`They're away ${away.from}–${away.to}; don't give them "${task.title}".`);
+    }
+    const ownerAfter = change.ownerId ?? task.ownerId;
+    if (ownerAfter === away.memberId && change.dueDate && task.dueDate && change.dueDate < task.dueDate) {
+      issues.push(`Don't move "${task.title}" earlier for someone who is away; hand it off or give it more time.`);
+    }
+  }
+  for (const task of applyPlanChanges(tasks, changes)) {
+    if (task.status === "done" || task.ownerId !== away.memberId || !task.dueDate) continue;
+    if (task.dueDate >= away.from && task.dueDate <= away.to) {
+      issues.push(`"${task.title}" is due ${task.dueDate}, while its owner is away (${away.from}–${away.to}); hand it to someone else or move it after they're back.`);
     }
   }
   return issues;

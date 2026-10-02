@@ -19,6 +19,8 @@ export interface ReplanRequest {
   avoid?: string[];
   /** Recent notes from the team (newest first), so proposals can use the real reason. */
   notes?: { from: string; text: string }[];
+  /** Someone who can't work for a while: suggestions may not add to their load. */
+  away?: { memberId: string; from: string; to: string };
 }
 
 export interface PlanChange {

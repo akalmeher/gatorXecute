@@ -79,3 +79,27 @@ test("failure messages only ask students to rephrase when the AI misread them", 
   assert.doesNotMatch(failureMessage("gemini_request_failed", "Try rephrasing."), /rephras/i);
   assert.equal(failureMessage("gemini_invalid_output", "Try rephrasing."), "Try rephrasing.");
 });
+
+test("every request tells the model not to guess pronouns or repeat personal details", async () => {
+  fakeFetch({ "gemini-flash-latest": [{ status: 200, json: { intent: "meet" } }] });
+  await ask("reasoning");
+  assert.match(JSON.stringify(calls[0].body), /Never assume anyone's gender or pronouns/);
+});
+
+test("a guessed pronoun gets one rewrite", async () => {
+  fakeFetch({
+    "gemini-flash-latest": [
+      { status: 200, json: { note: "Divij said he is done." } },
+      { status: 200, json: { note: "Divij said they are done." } },
+    ],
+  });
+  const result = await generateValidatedGeminiJson<{ note: string }>({
+    systemInstruction: "sys",
+    buildPrompt: (issues) => `prompt ${issues.join(" ")}`,
+    responseSchema: {},
+    validate: (data) => ({ ok: true, value: data as { note: string } }),
+    tier: "reasoning",
+  });
+  assert.ok(result.ok && result.value.note === "Divij said they are done.");
+  assert.equal(calls.length, 2);
+});

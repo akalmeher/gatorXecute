@@ -11,7 +11,8 @@ import {
   parseTasks,
 } from "@/features/ai/ai-parse";
 import { addDays, toIsoDay, todayIsoDay } from "./plan-validation";
-import { MAX_PLAN_CHANGES, PROBLEM_PHRASE, applyPlanChanges, checkPlanChanges, findPlanProblems } from "./plan-health";
+import { type Absence, MAX_PLAN_CHANGES, PROBLEM_PHRASE, applyPlanChanges, checkAbsence, checkPlanChanges, findPlanProblems } from "./plan-health";
+import { isIsoDay } from "./plan-validation";
 import { formatDay } from "./plan-display";
 
 /**
@@ -21,7 +22,7 @@ import { formatDay } from "./plan-display";
 
 const MAX_CONCERN_CHARS = 500;
 
-type ParsedReplanRequest = Required<Omit<ReplanRequest, "concern">> & { concern?: string };
+type ParsedReplanRequest = Required<Omit<ReplanRequest, "concern" | "away">> & { concern?: string; away?: Absence };
 
 export function parseReplanRequest(body: unknown): ParseResult<ParsedReplanRequest> {
   const issues: string[] = [];
@@ -68,14 +69,23 @@ export function parseReplanRequest(body: unknown): ParseResult<ParsedReplanReque
             return nonEmptyString(n.from) && nonEmptyString(n.text) ? [{ from: n.from.slice(0, 60), text: n.text.slice(0, 500) }] : [];
           }).slice(0, 6)
         : [],
+      away: parseAway(b.away, members.map((m) => m.id)),
     },
   };
+}
+
+function parseAway(value: unknown, memberIds: string[]): Absence | undefined {
+  const a = asRecord(value);
+  if (!nonEmptyString(a.memberId) || !memberIds.includes(a.memberId)) return undefined;
+  if (!isIsoDay(a.from) || !isIsoDay(a.to) || a.to < a.from) return undefined;
+  return { memberId: a.memberId, from: a.from, to: a.to };
 }
 
 interface ReplanContext {
   memberIds: string[];
   deadline?: string;
   today: string;
+  away?: Absence;
 }
 
 export function validateReplan(raw: unknown, tasks: Task[], context: ReplanContext): ParseResult<ReplanSuggestion> {
@@ -108,6 +118,9 @@ export function validateReplan(raw: unknown, tasks: Task[], context: ReplanConte
   }
 
   if (r.onTrack === true && changes.length > 0) issues.push("When onTrack is true, changes must be empty.");
+  if (r.onTrack === true && context.away && checkAbsence([], tasks, context.away).length > 0) {
+    issues.push("Someone is away and still has steps due while they're gone, so onTrack must be false.");
+  }
   if (issues.length === 0) issues.push(...checkPlanChanges(changes, tasks, context));
 
   if (issues.length > 0) return { ok: false, issues };
@@ -130,6 +143,7 @@ You propose; the students decide. Nothing changes unless they accept.
 Rules:
 - Propose the SMALLEST set of changes (usually 1 to 3, never more than ${MAX_PLAN_CHANGES}) that keeps the work moving and finishing by the deadline.
 - Good moves: give a not-yet-started step to someone with time and relevant skills or learning goals; let people work on something that isn't waiting on anyone; move a due date only when needed and never past the deadline or before today.
+- If someone is away, it's for personal reasons: never give them new work and never move their deadlines earlier (that adds pressure right before they leave). Hand their steps due in that window to teammates with time, or move them after they return, within the deadline. Describe it only as "<name> is away <days>" and never mention or guess the reason.
 - Never change steps that are done. Avoid moving in-progress work to someone else unless the student's note says its owner is unavailable.
 - Every changed step must still be due on or after the steps it needs, and before the steps that need it.
 - ownerId must be a provided member id; taskId must be a provided step id; dueDate is YYYY-MM-DD. Omit ownerId or dueDate when that part doesn't change.
@@ -175,6 +189,9 @@ function buildPrompt(request: ParsedReplanRequest, context: ReplanContext, previ
     `Steps (JSON):\n${JSON.stringify(steps, null, 2)}`,
     `Problems noticed automatically (JSON):\n${JSON.stringify(problems, null, 2)}`,
     `Note from the student: ${request.concern ?? "(none)"}`,
+    request.away
+      ? `Away: ${nameById.get(request.away.memberId) ?? request.away.memberId} (${request.away.memberId}) can't work ${request.away.from} to ${request.away.to} (inclusive). Don't give them new work, don't move their deadlines earlier, and hand off or move anything of theirs due in that window.`
+      : "Away: nobody",
     `Recent notes from the team (newest first):\n${
       request.notes.length > 0 ? request.notes.map((n) => `- ${n.from}: "${n.text}"`).join("\n") : "(none)"
     }`,
@@ -221,6 +238,27 @@ const RESPONSE_SCHEMA = {
 
 /** Deterministic, clearly labeled fallback: give held-up steps a little more time. */
 export function buildDemoReplan(request: ParsedReplanRequest, context: ReplanContext): ReplanSuggestion {
+  if (context.away) {
+    const away = context.away;
+    const name = (id?: string) => request.project.members.find((m) => m.id === id)?.name.split(" ")[0] ?? "A teammate";
+    const load = (id: string) => request.tasks.filter((t) => t.ownerId === id && t.status !== "done").length;
+    const helpers = request.project.members.filter((m) => m.id !== away.memberId).sort((a, b) => load(a.id) - load(b.id));
+    const affected = request.tasks.filter((t) => t.ownerId === away.memberId && t.status !== "done" && t.dueDate && t.dueDate >= away.from && t.dueDate <= away.to);
+    const changes: PlanChange[] = affected
+      .map((t, i): PlanChange => helpers.length > 0
+        ? { taskId: t.id, ownerId: helpers[i % helpers.length].id, why: "Keeps it moving while its owner is away." }
+        : { taskId: t.id, dueDate: addDays(away.to, 1), why: "Gives it time until its owner is back." })
+      .filter((change) => checkPlanChanges([change], request.tasks, context).length === 0)
+      .slice(0, MAX_PLAN_CHANGES);
+    return {
+      headline: `${name(away.memberId)} is away for a few days.`,
+      situation: affected.length > 0 ? "Some of their steps are due while they're away." : "Nothing of theirs is due while they're away.",
+      proposal: changes.length > 0 ? "Hand those steps to the teammates with the most room." : "Nothing needs to change.",
+      changes,
+      outcome: "Demo suggestion, not from Gemini.",
+      onTrack: changes.length === 0 && affected.length === 0,
+    };
+  }
   const [problem] = findPlanProblems(request.tasks, context.today);
   if (!problem) {
     return {
@@ -267,6 +305,7 @@ export async function generateReplan(body: unknown): Promise<{ status: number; b
     memberIds: request.project.members.map((m) => m.id),
     deadline: toIsoDay(request.project.deadline),
     today: todayIsoDay(),
+    away: request.away,
   };
 
   if (request.mode === "demo" || isGeminiOffline()) {

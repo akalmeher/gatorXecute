@@ -48,6 +48,7 @@ Gemini); every other route uses **Gemini**.
 | `POST /api/coordinate` | + Coordinate box | Infers intent: meet / project / update / help | yes |
 | `POST /api/catch-up` | Meetings (for Shreya) | "Here's what you missed": decided, changed, your part | yes |
 | `POST /api/meeting-brief` | Meetings (for Shreya) | "Worth discussing": only what needs the group live | yes |
+| `POST /api/share-check` | + Update, + Coordinate | Personal message? → what teammates see (discreet by default), away dates, a kind word, support if needed | yes |
 | `GET /api/health` | before a demo | `{status:"ready", models:[…]}` for Gemini and Gemma 4; never exposes the key | n/a |
 
 Types for each route live next to it (`*-types.ts`) and are safe to import
@@ -89,6 +90,28 @@ existing data and offers retry or the labeled fallback.
   10 minutes, 200 entries; per server instance.
 - **Rate limit**: per visitor, bursts of 20 refilling 20/minute; per instance.
 - **Key** is read only on the server; it never appears in client code or commits.
+
+## Care: when a student shares something personal
+
+Example: "i cant work from thurs to fri this week cause im visiting my sick mom…"
+
+- **Ask before sharing** (`share-check.ts`, `features/care/ShareChoice.tsx`):
+  teammates see "Divij is away Thursday–Friday this week." by default. The
+  student can edit it, share their own words, or share nothing. A shareable
+  version that mentions health, family or feelings is rejected in code
+  (`care.ts` → `personalDetailsIn`) and replaced by a neutral template.
+- **Never add load to someone who's away** (`plan-health.ts` →
+  `checkAbsence`): replans may not give them new steps or earlier deadlines,
+  and anything of theirs due while they're away must be handed off or moved
+  after they're back. The replanner only ever receives the discreet note.
+- **No guessed pronouns**: `PEOPLE_RULE` is sent with every prompt; any
+  model-written string with he/she/him/her (not copied from the student's own
+  words) gets one rewrite (`guessedPronouns`).
+- **Support, never pressure** (`features/care/SupportNote.tsx`): a one-line
+  acknowledgement and a link to SFSU CAPS. Crisis language (regex, regardless
+  of the model) shows 988 and CAPS first, and teammates see only "needs some
+  time away for a personal matter." Nothing is followed up or tracked.
+- If the AI is unavailable, the same rules run in code (route and client).
 
 ## Before a demo
 

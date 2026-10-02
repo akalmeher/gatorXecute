@@ -17,6 +17,7 @@
  */
 
 import { cacheKey, createRateLimiter, createResponseCache, visitorId } from "./request-guards";
+import { guessedPronouns } from "./care";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
@@ -33,6 +34,13 @@ const FALLBACK_TIMEOUT_MS = 10_000;
 const RETRY_DELAYS_MS = [700, 1800];
 const RETRYABLE_STATUS = new Set([429, 500, 503]);
 const MAX_RETRY_AFTER_MS = 4000;
+
+/**
+ * How every answer talks about people. Appended to every system instruction;
+ * pronoun guesses are also caught in code (see generateValidatedGeminiJson).
+ */
+export const PEOPLE_RULE = `
+People: refer to people by name, or as "they". Never assume anyone's gender or pronouns. When someone shares something personal (health, family, grief), never repeat those details in anything their teammates will read: describe only the effect on the work (e.g. "Divij is away Thursday–Friday").`;
 
 /**
  * Prompt-injection guard, appended to every system instruction. Student
@@ -147,7 +155,8 @@ export async function generateGeminiJson({
   const thinkingConfig = supportsThinkingLevel(model) ? getThinkingConfig() : undefined;
   const requestBody = JSON.stringify({
     systemInstruction: { parts: [{ text: `${systemInstruction}
-${UNTRUSTED_CONTENT_RULE}` }] },
+${UNTRUSTED_CONTENT_RULE}
+${PEOPLE_RULE}` }] },
     contents: [
       {
         role: "user",
@@ -286,6 +295,15 @@ export async function generateValidatedGeminiJson<T>({
         });
         const result = validate(data);
         if (result.ok) {
+          // Retry if the model guessed someone's pronouns; on the last attempt
+          // the answer is kept (and logged) rather than failing the student.
+          const guesses = guessedPronouns(result.value, buildPrompt([]));
+          const lastAttempt = !hasFallback && attempt === maxAttempts;
+          if (guesses.length > 0 && !lastAttempt) {
+            issues = [`Refer to people by name or "they"; don't guess pronouns. Rewrite: ${guesses.slice(0, 3).map((g) => `"${g}"`).join(", ")}`];
+            continue;
+          }
+          if (guesses.length > 0) console.warn(`[ai] ${model} kept a pronoun after retry: ${guesses[0]}`);
           if (key) responseCache.set(key, { value: result.value, model });
           return { ok: true, value: result.value, model };
         }

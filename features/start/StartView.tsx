@@ -125,7 +125,7 @@ export function StartView() {
           </ul>
         </section>
 
-        <CoordinateBox project={project} onHelp={(concern) => void replan.request({ concern })} />
+        <CoordinateBox project={project} onHelp={(concern, away) => void replan.request({ concern, away })} />
       </div>
 
       {/* RIGHT: when? */}

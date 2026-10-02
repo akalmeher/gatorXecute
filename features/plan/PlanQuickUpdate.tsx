@@ -7,13 +7,20 @@ import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import type { ProgressInterpretation, ProgressUpdateRequest, ProgressUpdateResponse } from "./update-types";
 import { primaryButton, quietButton, secondaryButton } from "./PlanFocus";
 import { modelLabel } from "@/features/ai/model-label";
+import type { ShareCheck } from "@/features/ai/share-check-types";
+import { mentionsPersonal } from "@/features/ai/care";
+import { useShareCheck } from "@/features/care/useShareCheck";
+import { SupportNote } from "@/features/care/SupportNote";
+import { ShareChoice } from "@/features/care/ShareChoice";
 
 /**
  * Feature Owner: Divij Anand
  * "+ Update": students say what happened in their own words instead of
  * maintaining a board. Gemini proposes status changes; nothing changes until
  * they confirm. Never asks who they are twice: it uses the remembered identity.
- * Confirmed updates are shared with the team as meeting context.
+ * Confirmed updates are shared with the team as meeting context. Personal
+ * updates are never shared as written unless the student chooses to: the
+ * default is a discreet version that says only how the work is affected.
  */
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -42,6 +49,8 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ interpretation: ProgressInterpretation; source: "gemini" | "demo"; model?: string } | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [care, setCare] = useState<ShareCheck | null>(null);
+  const shareCheck = useShareCheck();
   const inFlight = useRef<AbortController | null>(null);
 
   useEffect(() => () => inFlight.current?.abort(), []);
@@ -56,6 +65,8 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
     setIsLoading(true);
     setError(null);
     setConfirmation(null);
+    setCare(null);
+    const careCheck = mentionsPersonal(text) ? shareCheck(text, member?.name ?? "A teammate") : Promise.resolve(null);
     const body: ProgressUpdateRequest = {
       mode,
       project: { id: project.id, name: project.name, members: project.members.map(({ id, name }) => ({ id, name })) },
@@ -71,30 +82,37 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
         signal: controller.signal,
       });
       const data = (await response.json()) as ProgressUpdateResponse;
+      setCare(await careCheck);
       if (data.ok) setResult({ interpretation: data.interpretation, source: data.source, model: data.model });
       else setError(data.error === "bad_request" && data.issues?.[0] ? data.issues[0] : data.message);
     } catch {
-      if (!controller.signal.aborted) setError("Couldn't reach the update service.");
+      if (!controller.signal.aborted) {
+        setCare(await careCheck);
+        setError("Couldn't reach the update service.");
+      }
     } finally {
       if (inFlight.current === controller) inFlight.current = null;
       if (!controller.signal.aborted) setIsLoading(false);
     }
   };
 
-  const confirm = () => {
+  /** `shared` is what teammates will read; null shares nothing. */
+  const confirm = (shared: string | null = text.trim()) => {
     if (!result) return;
     const { changes } = result.interpretation;
     changes.forEach((change) => updateTaskStatus(change.taskId, change.status));
-    if (member) {
+    if (member && shared) {
       addAsyncUpdate({
         projectId: project.id,
         memberId: member.id,
         type: changes.some((c) => c.status === "blocked") ? "blocker" : "progress",
-        content: text.trim(),
+        content: shared,
       });
     }
-    setConfirmation(changes.length === 1 ? "✓ Updated · shared for the next meeting" : `✓ ${changes.length} steps updated · shared for the next meeting`);
+    const what = changes.length === 0 ? "✓ Noted" : changes.length === 1 ? "✓ Updated" : `✓ ${changes.length} steps updated`;
+    setConfirmation(shared ? `${what} · shared for the next meeting` : `${what} · nothing shared`);
     setResult(null);
+    setCare(null);
     setText("");
     setIsOpen(false);
   };
@@ -103,6 +121,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
     const { interpretation, source, model } = result;
     return (
       <section aria-labelledby="update-heading" className="space-y-3 rounded-2xl bg-[#171A23] p-5">
+        {care?.personal && <SupportNote wellbeing={care.wellbeing} acknowledgement={care.acknowledgement} />}
         <h3 id="update-heading" className="font-heading text-lg font-semibold text-[#F5F2FA]">
           {interpretation.summary}
         </h3>
@@ -120,23 +139,34 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
         {interpretation.unmatched.length > 0 && (
           <p className="text-sm text-[#AAA5B4]">Couldn&apos;t match: {interpretation.unmatched.map((u) => `“${u}”`).join(", ")}</p>
         )}
-        <div className="flex flex-wrap items-center gap-3">
-          {interpretation.changes.length > 0 ? (
-            <>
-              <button type="button" onClick={confirm} className={primaryButton}>
-                Yes, update
+        {care?.personal ? (
+          <>
+            <ShareChoice shareable={care.shareable} original={text.trim()} onShare={confirm} onSkip={() => confirm(null)} />
+            {interpretation.changes.length > 0 && (
+              <button type="button" onClick={() => setResult(null)} className={`${quietButton} text-xs`}>
+                The step changes aren&apos;t right
               </button>
-              <button type="button" onClick={() => setResult(null)} className={quietButton}>
-                Not quite
+            )}
+          </>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            {interpretation.changes.length > 0 ? (
+              <>
+                <button type="button" onClick={() => confirm()} className={primaryButton}>
+                  Yes, update
+                </button>
+                <button type="button" onClick={() => setResult(null)} className={quietButton}>
+                  Not quite
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => setResult(null)} className={primaryButton}>
+                OK
               </button>
-            </>
-          ) : (
-            <button type="button" onClick={() => setResult(null)} className={primaryButton}>
-              OK
-            </button>
-          )}
-          <span className="text-xs text-[#AAA5B4]/70">{modelLabel(model, source)} · nothing changes until you confirm</span>
-        </div>
+            )}
+            <span className="text-xs text-[#AAA5B4]/70">{modelLabel(model, source)} · nothing changes until you confirm</span>
+          </div>
+        )}
       </section>
     );
   }

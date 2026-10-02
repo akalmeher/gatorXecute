@@ -80,6 +80,12 @@ From the team's design philosophy:
 - **Privacy:** no accounts or stored profiles; Quick Meet polls live only in
   links; the Gemini key never leaves the server.
 - **Human control:** nothing is saved without a click; everything is editable.
+- **Care:** when a student shares something personal (illness, family,
+  grief), teammates see only the effect on the work ("Divij is away
+  Thursday–Friday") unless the student chooses otherwise; replans can't add
+  work or pull deadlines earlier for someone who's away; the AI never guesses
+  pronouns; crisis language always surfaces 988 and SFSU CAPS. Enforced in
+  code, not just prompts (see `features/ai/README.md` → Care).
 
 ## Quality
 
@@ -126,3 +132,4 @@ with explicit consent → adaptive views per kind of work (film, lab, study).
 | #3 | Cockpit, + Coordinate, Quick Meet (+ Oscar's grid), reliability, tests, docs | 2nd |
 | #4 | Collaboration Dock, quiet header, `/` as home | 3rd |
 | #5 | Gemma 4 integration, model routing, evaluation | 4th |
+| care | Personal messages: ask before sharing, protect people who are away, no guessed pronouns, support resources (stacked on #1) | after #1 |
