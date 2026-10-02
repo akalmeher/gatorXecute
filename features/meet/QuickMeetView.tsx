@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { AvailabilityBlock, Member } from "@/types";
 import { AvailabilityGrid } from "@/features/scheduling/AvailabilityGrid";
 import { findBestMeetingTime, formatTime } from "@/features/scheduling/scheduling-utils";
@@ -188,6 +189,7 @@ export function QuickMeetView() {
   return (
     <div className="space-y-10 max-w-4xl">
       {/* Header: the question students already have */}
+      <div className="flex items-center justify-between gap-6">
       <div className="space-y-2">
         <h1 className="font-heading text-3xl sm:text-[34px] font-bold tracking-tight text-[#F5F2FA]">
           {fromLink && starter ? `${firstName(starter.name)} wants to find a time` : "When can we meet?"}
@@ -202,6 +204,15 @@ export function QuickMeetView() {
             That link looks broken, so this is a fresh start. Ask for the link again if you meant to join someone.
           </p>
         )}
+      </div>
+        <Image
+          src="/illustrations/quick-meet.svg"
+          alt=""
+          width={944}
+          height={880}
+          unoptimized
+          className="hidden sm:block w-40 h-auto shrink-0"
+        />
       </div>
 
       {/* The answer, first */}
