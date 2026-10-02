@@ -227,6 +227,7 @@ export async function generateMeetingBrief(body: unknown): Promise<{ status: num
     buildPrompt: (issues) => buildPrompt(request, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: (data) => validateMeetingBrief(data, request),
+    cacheable: true,
     temperature: 0.3,
   });
 

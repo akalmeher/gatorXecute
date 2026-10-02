@@ -65,7 +65,8 @@ export type PlanErrorCode =
   | "bad_request"
   | "missing_key"
   | "gemini_request_failed"
-  | "gemini_invalid_output";
+  | "gemini_invalid_output"
+  | "rate_limited";
 
 export interface PlanErrorResponse {
   ok: false;

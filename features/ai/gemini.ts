@@ -13,6 +13,8 @@
  *                   fallback without calling Gemini (demo-day safety switch).
  */
 
+import { cacheKey, createRateLimiter, createResponseCache, visitorId } from "./request-guards";
+
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -170,16 +172,19 @@ ${UNTRUSTED_CONTENT_RULE}` }] },
   }
 }
 
-export type AiErrorCode = "bad_request" | "missing_key" | "gemini_request_failed" | "gemini_invalid_output";
+export type AiErrorCode = "bad_request" | "missing_key" | "gemini_request_failed" | "gemini_invalid_output" | "rate_limited";
 
 export type GeminiValidationOutcome<T> =
   | { ok: true; value: T; model: string }
-  | { ok: false; error: Exclude<AiErrorCode, "bad_request">; message: string; issues?: string[] };
+  | { ok: false; error: Exclude<AiErrorCode, "bad_request" | "rate_limited">; message: string; issues?: string[] };
 
 /**
  * Calls Gemini and validates the result, retrying once with the validation
  * issues fed back into the prompt. Never returns unvalidated output.
  */
+// Validated answers for identical requests, reused for 10 minutes (opt-in per call).
+const responseCache = createResponseCache<{ value: unknown; model: string }>({ ttlMs: 10 * 60_000, maxEntries: 200 });
+
 export async function generateValidatedGeminiJson<T>({
   systemInstruction,
   buildPrompt,
@@ -188,6 +193,7 @@ export async function generateValidatedGeminiJson<T>({
   temperature,
   attachments,
   maxAttempts = 2,
+  cacheable = false,
 }: {
   systemInstruction: string;
   buildPrompt: (previousIssues: string[]) => string;
@@ -196,10 +202,22 @@ export async function generateValidatedGeminiJson<T>({
   temperature?: number;
   attachments?: GeminiAttachment[];
   maxAttempts?: number;
+  /**
+   * Reuse a validated answer for an identical request. Use where repeating
+   * should give the same answer (catch-up, brief, parsing), not where students
+   * ask for a fresh alternative (new plan, "see another option").
+   */
+  cacheable?: boolean;
 }): Promise<GeminiValidationOutcome<T>> {
   if (!hasGeminiKey()) {
     return { ok: false, error: "missing_key", message: "Gemini is not configured on the server." };
   }
+
+  const key = cacheable
+    ? cacheKey([getGeminiModel(), systemInstruction, buildPrompt([]), responseSchema, temperature, attachments])
+    : undefined;
+  const cached = key ? responseCache.get(key) : undefined;
+  if (cached) return { ok: true, value: cached.value as T, model: cached.model };
 
   let issues: string[] = [];
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -212,7 +230,10 @@ export async function generateValidatedGeminiJson<T>({
         attachments,
       });
       const result = validate(data);
-      if (result.ok) return { ok: true, value: result.value, model };
+      if (result.ok) {
+        if (key) responseCache.set(key, { value: result.value, model });
+        return { ok: true, value: result.value, model };
+      }
       issues = result.issues;
     } catch (error) {
       if (error instanceof GeminiError && (error.code === "invalid_json" || error.code === "empty_response")) {
@@ -229,10 +250,20 @@ export async function generateValidatedGeminiJson<T>({
 }
 
 /** Shared POST handler: parses the JSON body and returns the service's status and body. */
+// Per-visitor limit across the AI routes: bursts of 20, refilling 20 per minute.
+const aiRateLimiter = createRateLimiter({ capacity: 20, windowMs: 60_000 });
+
 export async function handleJsonPost(
   request: Request,
   service: (body: unknown) => Promise<{ status: number; body: unknown }>
 ): Promise<Response> {
+  const waitSeconds = aiRateLimiter.check(visitorId(request));
+  if (waitSeconds > 0) {
+    return Response.json(
+      { ok: false, error: "rate_limited", message: `That's a lot of requests at once. Try again in ${waitSeconds === 1 ? "a second" : `${waitSeconds} seconds`}.` },
+      { status: 429, headers: { "Retry-After": String(waitSeconds) } }
+    );
+  }
   let body: unknown;
   try {
     body = await request.json();

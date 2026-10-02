@@ -278,6 +278,8 @@ export async function generateReplan(body: unknown): Promise<{ status: number; b
     buildPrompt: (issues) => buildPrompt(request, context, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: (data) => validateReplan(data, request.tasks, context),
+    // The first suggestion for the same situation is reused; "See another option" always asks fresh.
+    cacheable: request.avoid.length === 0,
     temperature: request.avoid.length > 0 ? 0.7 : 0.3,
   });
 

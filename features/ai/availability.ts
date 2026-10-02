@@ -215,6 +215,7 @@ export async function generateAvailability(body: unknown): Promise<{ status: num
     buildPrompt: (issues) => buildPrompt(request, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: validateAvailabilityOutput,
+    cacheable: true,
     temperature: 0.1,
   });
 

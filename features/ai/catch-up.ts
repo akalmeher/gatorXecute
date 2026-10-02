@@ -275,6 +275,7 @@ export async function generateCatchUp(body: unknown): Promise<{ status: number; 
     buildPrompt: (issues) => buildPrompt(request, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: (data) => validateCatchUp(data, request),
+    cacheable: true,
     temperature: 0.2,
   });
 

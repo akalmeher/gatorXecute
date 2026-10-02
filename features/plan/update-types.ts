@@ -35,7 +35,7 @@ export type ProgressUpdateResponse =
   | { ok: true; source: "gemini" | "demo"; model?: string; interpretation: ProgressInterpretation }
   | {
       ok: false;
-      error: "bad_request" | "missing_key" | "gemini_request_failed" | "gemini_invalid_output";
+      error: "bad_request" | "missing_key" | "gemini_request_failed" | "gemini_invalid_output" | "rate_limited";
       message: string;
       issues?: string[];
     };

@@ -174,6 +174,7 @@ export async function interpretProgressUpdate(body: unknown): Promise<{ status: 
     buildPrompt: (issues) => buildPrompt(request, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: (data) => validateInterpretation(data, request.tasks),
+    cacheable: true,
     temperature: 0.1,
   });
 
