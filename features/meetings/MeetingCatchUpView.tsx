@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import type { ShareCheck } from "@/features/ai/share-check-types";
@@ -123,13 +124,23 @@ export function MeetingCatchUpView() {
 
   if (!meeting) {
     return (
-      <div className="rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8 space-y-2">
-        <h2 className="font-heading text-2xl font-bold tracking-tight text-[#F5F2FA]">
-          No meeting scheduled yet
-        </h2>
-        <p className="text-sm text-[#AAA5B4]">
-          Once your team confirms a time, the meeting and its agenda will show up here.
-        </p>
+      <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 sm:p-8">
+        <Image
+          src="/illustrations/meeting-notes.svg"
+          alt=""
+          width={180}
+          height={130}
+          unoptimized
+          className="w-36 sm:w-44 h-auto shrink-0 opacity-85"
+        />
+        <div className="space-y-2 text-center sm:text-left">
+          <h2 className="font-heading text-2xl font-bold tracking-tight text-[#F5F2FA]">
+            No meeting scheduled yet
+          </h2>
+          <p className="text-sm text-[#AAA5B4] max-w-md">
+            Once your team confirms a time, the meeting agenda, AI summaries, and catch-up notes will show up right here.
+          </p>
+        </div>
       </div>
     );
   }

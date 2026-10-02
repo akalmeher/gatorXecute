@@ -1,0 +1,97 @@
+<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="meetPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B8A6FF" />
+      <stop offset="100%" stop-color="#7B61FF" />
+    </linearGradient>
+    <linearGradient id="meetGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="100%" stop-color="#D5B45C" />
+    </linearGradient>
+    <filter id="meetGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Ambient light blobs -->
+  <circle cx="340" cy="200" r="140" fill="#B8A6FF" opacity="0.08" filter="url(#meetGlow)" />
+  <circle cx="200" cy="240" r="100" fill="#D5B45C" opacity="0.08" filter="url(#meetGlow)" />
+
+  <!-- Calendar Page / Agenda Clipboard (Center) -->
+  <g transform="translate(180, 70)">
+    <!-- Clipboard board -->
+    <rect width="240" height="300" rx="20" fill="#1D202A" stroke="#2A2E39" stroke-width="2" filter="url(#meetGlow)" />
+    <!-- Clip on top -->
+    <rect x="75" y="-12" width="90" height="24" rx="8" fill="#2E283F" stroke="#B8A6FF" stroke-width="1.5" />
+    <circle cx="120" cy="0" r="5" fill="#D5B45C" />
+
+    <!-- Meeting Title & Time Badge -->
+    <rect x="25" y="35" width="120" height="12" rx="6" fill="#F5F2FA" />
+    <rect x="25" y="55" width="90" height="20" rx="10" fill="#232733" />
+    <text x="70" y="69" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#D5B45C" text-anchor="middle">🗓️ Today 4:00 PM</text>
+
+    <!-- Agenda item 1 (Checked) -->
+    <g transform="translate(25, 95)">
+      <circle cx="10" cy="10" r="9" fill="#10B981" />
+      <text x="10" y="14" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0F1117" text-anchor="middle">✓</text>
+      <rect x="30" y="5" width="140" height="8" rx="4" fill="#F5F2FA" opacity="0.9" />
+      <rect x="30" y="18" width="90" height="5" rx="2.5" fill="#AAA5B4" opacity="0.6" />
+    </g>
+
+    <!-- Agenda item 2 (Active / Worth Discussing) -->
+    <g transform="translate(25, 145)">
+      <circle cx="10" cy="10" r="9" fill="#D5B45C" filter="url(#meetGlow)" />
+      <polygon points="10,5 12,8 15,9 13,11 13,14 10,12 8,14 8,11 6,9 9,8" fill="#0F1117" />
+      <rect x="30" y="5" width="150" height="8" rx="4" fill="#D5B45C" />
+      <rect x="30" y="18" width="110" height="5" rx="2.5" fill="#AAA5B4" opacity="0.8" />
+    </g>
+
+    <!-- Agenda item 3 (Up next) -->
+    <g transform="translate(25, 195)">
+      <circle cx="10" cy="10" r="9" fill="#232733" stroke="#2A2E39" stroke-width="1.5" />
+      <circle cx="10" cy="10" r="3" fill="#B8A6FF" />
+      <rect x="30" y="5" width="130" height="8" rx="4" fill="#F5F2FA" opacity="0.7" />
+      <rect x="30" y="18" width="70" height="5" rx="2.5" fill="#AAA5B4" opacity="0.5" />
+    </g>
+
+    <!-- Bottom: AI Catch-Up Indicator -->
+    <g transform="translate(20, 245)">
+      <rect width="200" height="36" rx="12" fill="#171A23" stroke="#B8A6FF" stroke-width="1" />
+      <path d="M18 18 L20 14 L22 18 L26 20 L22 22 L20 26 L18 22 L14 20 Z" fill="#B8A6FF" />
+      <text x="34" y="22" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#B8A6FF">AI Catch-Up Ready</text>
+      <text x="175" y="22" font-family="system-ui, sans-serif" font-size="9" fill="#AAA5B4">Shreya</text>
+    </g>
+  </g>
+
+  <!-- Floating Audio / Speech Waveforms on Left -->
+  <g transform="translate(70, 160)">
+    <rect width="80" height="56" rx="14" fill="#171A23" stroke="#2A2E39" stroke-width="1.5" />
+    <!-- Audio Waveform bars -->
+    <rect x="18" y="24" width="4" height="12" rx="2" fill="#B8A6FF" />
+    <rect x="26" y="18" width="4" height="24" rx="2" fill="#D5B45C" />
+    <rect x="34" y="12" width="4" height="34" rx="2" fill="#B8A6FF" />
+    <rect x="42" y="20" width="4" height="20" rx="2" fill="#D5B45C" />
+    <rect x="50" y="16" width="4" height="28" rx="2" fill="#B8A6FF" />
+    <rect x="58" y="26" width="4" height="8" rx="2" fill="#AAA5B4" />
+  </g>
+
+  <!-- Steaming Coffee Cup on Right Desk -->
+  <g transform="translate(440, 230)">
+    <!-- Cup Body -->
+    <path d="M15 25 L20 60 C21 68, 55 68, 56 60 L61 25 Z" fill="#232733" stroke="#2A2E39" stroke-width="1.5" />
+    <!-- Cup Handle -->
+    <path d="M58 32 C68 32, 72 48, 56 50" fill="none" stroke="#2A2E39" stroke-width="3.5" />
+    <!-- SFSU Gator Gold band -->
+    <rect x="16.5" y="32" width="43" height="6" fill="#D5B45C" />
+    <!-- Saucer -->
+    <ellipse cx="38" cy="65" rx="35" ry="6" fill="#171A23" stroke="#2A2E39" stroke-width="1.5" />
+    <!-- Steam Curves -->
+    <path d="M30 20 Q35 12 30 5" fill="none" stroke="#B8A6FF" stroke-width="1.5" stroke-linecap="round" opacity="0.7" />
+    <path d="M42 20 Q47 12 42 5" fill="none" stroke="#D5B45C" stroke-width="1.5" stroke-linecap="round" opacity="0.7" />
+  </g>
+
+  <!-- Sparkles -->
+  <polygon points="140,80 142,85 147,85 143,88 145,93 140,90 135,93 137,88 133,85 138,85" fill="#D5B45C" />
+  <polygon points="460,130 462,135 467,135 463,138 465,143 460,140 455,143 457,138 453,135 458,135" fill="#B8A6FF" />
+</svg>

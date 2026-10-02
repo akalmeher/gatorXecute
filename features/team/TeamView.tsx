@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
@@ -224,15 +225,25 @@ export function TeamView() {
   // Step 1: start a new team.
   if (!team) {
     return (
-      <div className="max-w-2xl space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-[#F5F2FA] sm:text-[34px]">Form a team</h1>
-          <p className="text-base text-[#AAA5B4]">Name it, add teammates or send the link, and coordinate with zero accounts.</p>
-          {badLink && (
-            <p role="alert" className="text-sm text-[#D5B45C]">
-              That team link looks broken. Ask for it again, or start a new team here.
-            </p>
-          )}
+      <div className="max-w-3xl space-y-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 shadow-sm">
+          <div className="space-y-2 flex-1 min-w-0">
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-[#F5F2FA] sm:text-[34px]">Form a team</h1>
+            <p className="text-base text-[#AAA5B4]">Name it, add teammates with their skills, or share a link to coordinate with zero accounts.</p>
+            {badLink && (
+              <p role="alert" className="text-sm text-[#D5B45C]">
+                That team link looks broken. Ask for it again, or start a new team here.
+              </p>
+            )}
+          </div>
+          <Image
+            src="/illustrations/team-collab.svg"
+            alt=""
+            width={200}
+            height={150}
+            unoptimized
+            className="w-36 sm:w-48 h-auto shrink-0 opacity-85 hidden sm:block"
+          />
         </div>
         <form
           className="space-y-4"

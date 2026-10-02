@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { useProfile } from "@/features/profile/useProfile";
@@ -169,27 +170,28 @@ export function DashboardView() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-heading text-base font-bold text-[#F5F2FA] flex items-center gap-2">
-                  <span>⚡</span>
-                  <span>Activate Your Per-Task Role for {project.course || project.name}</span>
-                </h3>
-                <p className="text-xs text-[#AAA5B4] mt-0.5">
-                  Invited to work on this board? Just type what you can do in plain English, and Gemini will generate your role &amp; skill tags.
-                </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="space-y-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading text-base font-bold text-[#F5F2FA] flex items-center gap-2">
+                    <span>⚡</span>
+                    <span>Activate Your Per-Task Role for {project.course || project.name}</span>
+                  </h3>
+                  <p className="text-xs text-[#AAA5B4] mt-0.5">
+                    Invited to work on this board? Just type what you can do in plain English, and Gemini will generate your role &amp; skill tags.
+                  </p>
+                </div>
+                {existingProjectProfile && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEditor(false)}
+                    className="text-xs text-[#AAA5B4] hover:text-[#F5F2FA]"
+                  >
+                    ✕ Close
+                  </button>
+                )}
               </div>
-              {existingProjectProfile && (
-                <button
-                  type="button"
-                  onClick={() => setShowEditor(false)}
-                  className="text-xs text-[#AAA5B4] hover:text-[#F5F2FA]"
-                >
-                  ✕ Close
-                </button>
-              )}
-            </div>
 
             <form onSubmit={handleAiActivate} className="flex flex-col sm:flex-row gap-2 pt-1">
               <input
@@ -231,6 +233,15 @@ export function DashboardView() {
               </Link>
             </div>
           </div>
+          <Image
+            src="/illustrations/dashboard-kanban.svg"
+            alt=""
+            width={180}
+            height={130}
+            unoptimized
+            className="w-32 sm:w-40 h-auto shrink-0 opacity-85 hidden md:block"
+          />
+        </div>
         )}
       </div>
 

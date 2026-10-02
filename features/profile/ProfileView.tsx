@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import { type Profile, type ProjectProfile, resolveMemberForProject } from "./profile";
@@ -52,19 +53,29 @@ export function ProfileView() {
 
   return (
     <div className="max-w-4xl space-y-8">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-[#F5F2FA] sm:text-[34px]">
-            {profile ? "Profiles & Roles" : "Create your profile"}
-          </h1>
-          <span className="rounded-full border border-[#2A2E39] bg-[#171A23] px-3 py-1 text-xs text-[#AAA5B4]">
-            Discord-Style Identity Model
-          </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 shadow-sm">
+        <div className="space-y-3 flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="font-heading text-3xl font-bold tracking-tight text-[#F5F2FA] sm:text-[34px]">
+              {profile ? "Profiles & Roles" : "Create your profile"}
+            </h1>
+            <span className="rounded-full border border-[#2A2E39] bg-[#1D202A] px-3 py-1 text-xs text-[#AAA5B4]">
+              Discord-Style Identity
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed text-[#AAA5B4] max-w-xl">
+            Just like Discord, you have a <strong>Master Uni Profile</strong> (all your skills across SFSU) and a{" "}
+            <strong>Per-Project Profile</strong> (what you specifically contribute in {project.course || "this project"}).
+          </p>
         </div>
-        <p className="text-base leading-relaxed text-[#AAA5B4]">
-          Just like Discord, you have a <strong>Master Uni Profile</strong> (all your skills across SFSU) and a{" "}
-          <strong>Per-Project Profile</strong> (what you specifically contribute in {project.course || "this project"}).
-        </p>
+        <Image
+          src="/illustrations/profile-growth.svg"
+          alt=""
+          width={180}
+          height={130}
+          unoptimized
+          className="w-32 sm:w-44 h-auto shrink-0 opacity-90 hidden sm:block"
+        />
       </div>
 
       {profile && (

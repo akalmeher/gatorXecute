@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useProject } from "@/context/ProjectContext";
 import { PlanDraftEditor } from "./PlanDraftEditor";
 import { PlanTimeline } from "./PlanTimeline";
@@ -283,11 +284,21 @@ export function ProjectPlanView() {
       ) : !isGenerating && !error ? (
         /* No plan yet */
         <section className="space-y-6 py-4">
-          <div className="space-y-2">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">No plan yet.</h2>
-            <p className="text-lg text-[#AAA5B4] max-w-xl">
-              I&apos;ll draft one from your assignment, deadline, and team. You can change anything before it&apos;s used.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="space-y-2">
+              <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F2FA]">No plan yet.</h2>
+              <p className="text-base text-[#AAA5B4] max-w-xl leading-relaxed">
+                I&apos;ll draft a step-by-step roadmap from your assignment PDF, syllabus, and team skills. You can review and customize everything before adopting.
+              </p>
+            </div>
+            <Image
+              src="/illustrations/plan-hero.svg"
+              alt=""
+              width={260}
+              height={190}
+              unoptimized
+              className="w-48 sm:w-56 h-auto shrink-0 opacity-85 hover:opacity-100 transition-opacity"
+            />
           </div>
 
           {/* Team Active Skills for this Project */}

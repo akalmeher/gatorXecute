@@ -113,25 +113,35 @@ export function StartView() {
         {/* Door 1: Quick Meet */}
         <Link
           href="/meet"
-          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#B8A6FF]/70 hover:bg-[#1A1D27] shadow-sm hover-lift"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#B8A6FF]/70 hover:bg-[#1A1D27] shadow-sm hover-lift overflow-hidden"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF] group-hover:scale-105 transition-transform">
-                <CalendarClockIcon className="h-6 w-6" />
-              </span>
-              <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#B8A6FF]">
-                30-sec poll
-              </span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#B8A6FF]/10 text-[#B8A6FF] group-hover:scale-105 transition-transform">
+                  <CalendarClockIcon className="h-6 w-6" />
+                </span>
+                <span className="inline-flex items-center rounded-full border border-[#2A2E39] bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-medium text-[#B8A6FF]">
+                  30-sec poll
+                </span>
+              </div>
+              <div>
+                <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#B8A6FF] transition flex items-center gap-2">
+                  Quick Meet
+                </h2>
+                <p className="mt-1 text-sm text-[#AAA5B4] leading-relaxed">
+                  When can we meet? Find team overlap instantly with no login or account required.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#B8A6FF] transition flex items-center gap-2">
-                Quick Meet
-              </h2>
-              <p className="mt-1 text-sm text-[#AAA5B4] leading-relaxed">
-                When can we meet? Find team overlap instantly with no login or account required.
-              </p>
-            </div>
+            <Image
+              src="/illustrations/quick-meet.svg"
+              alt=""
+              width={120}
+              height={100}
+              unoptimized
+              className="w-24 h-auto opacity-75 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 hidden sm:block shrink-0 pointer-events-none self-center"
+            />
           </div>
           <div className="mt-6 flex items-center text-sm font-semibold text-[#B8A6FF] group-hover:translate-x-1 transition duration-200">
             <span>Find a meeting time</span>
@@ -142,25 +152,35 @@ export function StartView() {
         {/* Door 2: Project Plan */}
         <Link
           href="/plan"
-          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#D5B45C]/70 hover:bg-[#1A1D27] shadow-sm hover-lift"
+          className="group relative flex flex-col justify-between rounded-2xl border border-[#2A2E39] bg-[#171A23] p-6 transition duration-300 hover:border-[#D5B45C]/70 hover:bg-[#1A1D27] shadow-sm hover-lift overflow-hidden"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D5B45C]/10 text-[#D5B45C] group-hover:scale-105 transition-transform">
-                <ClipboardListIcon className="h-6 w-6" />
-              </span>
-              <span className="inline-flex items-center rounded-full border border-[#D5B45C]/30 bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-semibold text-[#D5B45C]">
-                {deadline ? `Target: ${formatDay(deadline)}` : "In Progress"}
-              </span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#D5B45C]/10 text-[#D5B45C] group-hover:scale-105 transition-transform">
+                  <ClipboardListIcon className="h-6 w-6" />
+                </span>
+                <span className="inline-flex items-center rounded-full border border-[#D5B45C]/30 bg-[#1D202A] px-2.5 py-0.5 text-[11px] font-semibold text-[#D5B45C]">
+                  {deadline ? `Target: ${formatDay(deadline)}` : "In Progress"}
+                </span>
+              </div>
+              <div>
+                <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#D5B45C] transition truncate">
+                  {project.course ? project.course : project.name}
+                </h2>
+                <p className="mt-1 text-sm text-[#AAA5B4] truncate">
+                  {project.name ? project.name : "Assignment Breakdown & Plan"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading text-xl font-bold text-[#F5F2FA] group-hover:text-[#D5B45C] transition truncate">
-                {project.course ? project.course : project.name}
-              </h2>
-              <p className="mt-1 text-sm text-[#AAA5B4] truncate">
-                {project.name ? project.name : "Assignment Breakdown & Plan"}
-              </p>
-            </div>
+            <Image
+              src="/illustrations/plan-hero.svg"
+              alt=""
+              width={120}
+              height={100}
+              unoptimized
+              className="w-24 h-auto opacity-75 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 hidden sm:block shrink-0 pointer-events-none self-center"
+            />
           </div>
           <div className="mt-6 flex items-center justify-between">
             <span className="text-xs text-[#AAA5B4]">

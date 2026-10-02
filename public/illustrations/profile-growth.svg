@@ -1,0 +1,98 @@
+<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="profPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B8A6FF" />
+      <stop offset="100%" stop-color="#7B61FF" />
+    </linearGradient>
+    <linearGradient id="profGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="100%" stop-color="#D5B45C" />
+    </linearGradient>
+    <filter id="profGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Ambient light circles -->
+  <circle cx="300" cy="210" r="150" fill="#B8A6FF" opacity="0.08" filter="url(#profGlow)" />
+  <circle cx="200" cy="180" r="100" fill="#D5B45C" opacity="0.08" filter="url(#profGlow)" />
+
+  <!-- Central Graduation Cap & Mastery Star -->
+  <g transform="translate(230, 80)">
+    <!-- Graduation Cap Top Diamond -->
+    <polygon points="70,25 130,45 70,65 10,45" fill="#232733" stroke="url(#profGold)" stroke-width="2" filter="url(#profGlow)" />
+    <!-- Skull Cap Base -->
+    <path d="M35 55 L35 78 C35 92, 105 92, 105 78 L105 55 Z" fill="#1D202A" stroke="#2A2E39" stroke-width="1.5" />
+    <!-- Golden Tassel hanging down -->
+    <circle cx="70" cy="45" r="4" fill="#D5B45C" />
+    <path d="M70 45 Q50 65 45 90" fill="none" stroke="#D5B45C" stroke-width="2.5" />
+    <polygon points="41,90 49,90 47,105 43,105" fill="#D5B45C" />
+    <!-- Glowing Star -->
+    <polygon points="70,5 72,12 79,13 74,18 76,25 70,21 64,25 66,18 61,13 68,12" fill="#D5B45C" filter="url(#profGlow)" />
+  </g>
+
+  <!-- Orbiting Skill Badges (Representing the Discord-style Uni Vault) -->
+  
+  <!-- Badge 1: CS & Tech (Top Left) -->
+  <g transform="translate(70, 110)">
+    <rect width="130" height="42" rx="21" fill="#171A23" stroke="#B8A6FF" stroke-width="1.5" filter="url(#profGlow)" />
+    <circle cx="22" cy="21" r="12" fill="#B8A6FF" opacity="0.2" />
+    <text x="22" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#B8A6FF" text-anchor="middle">💻</text>
+    <text x="75" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#F5F2FA">TypeScript &amp; AI</text>
+  </g>
+
+  <!-- Badge 2: Cinema & Media (Bottom Left) -->
+  <g transform="translate(60, 240)">
+    <rect width="130" height="42" rx="21" fill="#171A23" stroke="#E59866" stroke-width="1.5" />
+    <circle cx="22" cy="21" r="12" fill="#E59866" opacity="0.2" />
+    <text x="22" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#E59866" text-anchor="middle">🎬</text>
+    <text x="75" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#F5F2FA">Video &amp; Story</text>
+  </g>
+
+  <!-- Badge 3: Design & UX (Top Right) -->
+  <g transform="translate(400, 110)">
+    <rect width="130" height="42" rx="21" fill="#171A23" stroke="#F1948A" stroke-width="1.5" />
+    <circle cx="22" cy="21" r="12" fill="#F1948A" opacity="0.2" />
+    <text x="22" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#F1948A" text-anchor="middle">🎨</text>
+    <text x="75" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#F5F2FA">Figma &amp; UI/UX</text>
+  </g>
+
+  <!-- Badge 4: Business & Pitch (Bottom Right) -->
+  <g transform="translate(400, 240)">
+    <rect width="130" height="42" rx="21" fill="#171A23" stroke="#D5B45C" stroke-width="1.5" filter="url(#profGlow)" />
+    <circle cx="22" cy="21" r="12" fill="#D5B45C" opacity="0.2" />
+    <text x="22" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#D5B45C" text-anchor="middle">📊</text>
+    <text x="75" y="25" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#F5F2FA">Presenting</text>
+  </g>
+
+  <!-- Central Profile Card (Discord-style Identity Preview) -->
+  <g transform="translate(200, 190)">
+    <rect width="200" height="150" rx="18" fill="#1D202A" stroke="#2A2E39" stroke-width="2" filter="url(#profGlow)" />
+    <!-- Banner header -->
+    <rect width="200" height="45" rx="18" fill="url(#profPurple)" opacity="0.8" />
+    <rect y="25" width="200" height="20" fill="url(#profPurple)" opacity="0.8" />
+    <!-- Avatar circle -->
+    <circle cx="45" cy="45" r="22" fill="#171A23" stroke="#D5B45C" stroke-width="2" />
+    <text x="45" y="50" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#D5B45C" text-anchor="middle">SFSU</text>
+    <!-- Name & Badge -->
+    <text x="80" y="60" font-family="system-ui, sans-serif" font-size="12" font-weight="bold" fill="#F5F2FA">Student Profile</text>
+    <text x="80" y="73" font-family="system-ui, sans-serif" font-size="9" fill="#AAA5B4">Computer Science</text>
+    <!-- Tag chips inside card -->
+    <g transform="translate(20, 90)">
+      <rect width="50" height="18" rx="9" fill="#232733" />
+      <text x="25" y="102" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#B8A6FF" text-anchor="middle">React</text>
+      <rect x="56" y="0" width="50" height="18" rx="9" fill="#232733" />
+      <text x="81" y="102" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#D5B45C" text-anchor="middle">Python</text>
+      <rect x="112" y="0" width="46" height="18" rx="9" fill="#232733" />
+      <text x="135" y="102" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#73C6B6" text-anchor="middle">Writing</text>
+    </g>
+    <!-- Bottom active task status -->
+    <circle cx="30" cy="128" r="4" fill="#10B981" />
+    <text x="40" y="131" font-family="system-ui, sans-serif" font-size="9" font-weight="medium" fill="#AAA5B4">Active in CSC 648</text>
+  </g>
+
+  <!-- Floating Sparkles -->
+  <polygon points="170,80 172,85 177,85 173,88 175,93 170,90 165,93 167,88 163,85 168,85" fill="#D5B45C" />
+  <polygon points="430,70 432,75 437,75 433,78 435,83 430,80 425,83 427,78 423,75 428,75" fill="#B8A6FF" />
+</svg>
