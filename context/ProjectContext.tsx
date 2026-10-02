@@ -57,21 +57,21 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   };
 
   const updateMemberAvailability = (
-  memberId: string,
-  blocks: AvailabilityBlock[]
-) => {
-  setProject((prev) => ({
-    ...prev,
+    memberId: string,
+    blocks: AvailabilityBlock[]
+  ) => {
+    setProject((prev) => ({
+      ...prev,
 
-    availability: [
-      ...prev.availability.filter(
-        (block) => block.memberId !== memberId
-      ),
+      availability: [
+        ...prev.availability.filter(
+          (block) => block.memberId !== memberId
+        ),
 
-      ...blocks,
-    ],
-  }));
-};
+        ...blocks,
+      ],
+    }));
+  };
 
   const getMemberById = (id?: string) => {
     if (!id) return undefined;

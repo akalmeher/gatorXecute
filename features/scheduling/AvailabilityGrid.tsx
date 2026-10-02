@@ -92,11 +92,13 @@ export function AvailabilityGrid({
      * When the selected teammate changes,
      * load that teammate's availability.
      */
-    useEffect(() => {
-        setSelectedCells(
-            blocksToCells(blocks)
-        );
-    }, [memberId, blocks]);
+    const [previousMemberId, setPreviousMemberId] =
+        useState(memberId);
+
+    if (previousMemberId !== memberId) {
+        setPreviousMemberId(memberId);
+        setSelectedCells(blocksToCells(blocks));
+    }
 
 
     /*
@@ -252,7 +254,7 @@ export function AvailabilityGrid({
     *
     * This becomes the gold "best time" cell.
     */
-    
+
 
     /*
      * Add or remove one calendar square.
