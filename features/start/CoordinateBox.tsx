@@ -7,6 +7,7 @@ import type { CoordinateIntent, CoordinateResponse, CoordinateResult } from "@/f
 import { encodePoll } from "@/features/meet/meet-link";
 import { PlanQuickUpdate } from "@/features/plan/PlanQuickUpdate";
 import { primaryButton, quietButton } from "@/features/plan/PlanFocus";
+import { modelLabel } from "@/features/ai/model-label";
 
 /**
  * Feature Owner: Divij Anand
@@ -26,6 +27,7 @@ export function CoordinateBox({ project, onHelp }: CoordinateBoxProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CoordinateResult | null>(null);
+  const [answeredBy, setAnsweredBy] = useState<string>("");
   const [submitted, setSubmitted] = useState("");
   const busy = useRef(false);
 
@@ -44,6 +46,7 @@ export function CoordinateBox({ project, onHelp }: CoordinateBoxProps) {
       if (data.ok) {
         setSubmitted(text.trim());
         setResult(data.result);
+        setAnsweredBy(modelLabel(data.model, data.source));
       } else {
         setError(data.message);
       }
@@ -96,7 +99,9 @@ export function CoordinateBox({ project, onHelp }: CoordinateBoxProps) {
 
       {result && (
         <div className="space-y-3 pl-1">
-          <p className="text-[#F5F2FA]">{result.reply}</p>
+          <p className="text-[#F5F2FA]">
+            {result.reply} <span className="text-xs text-[#AAA5B4]/70">· {answeredBy}</span>
+          </p>
           {result.intent === "meet" && (
             <Link href={meetHref()} className={primaryButton}>
               Find a time →

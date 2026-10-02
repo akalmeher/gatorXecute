@@ -17,12 +17,22 @@ a time; gatorXecute starts there and only becomes more when the group asks.
 | Quick Meet | `/meet` | Reads "free after 4 except Wed" / class schedules into rules | Time math, cautious rounding; best time from Oscar's deterministic algorithm |
 | Read the assignment | `/plan` | Reads the PDF: kind of work, deliverables, dates | Earlier deadline wins; file type/size checks |
 | Plan | `/plan` | Drafts steps, owners (skills + learning goals), dates | Real owners, no cycles, dates in range, editable before accepting |
-| + Update | Home, Plan | "finished the research btw" → status changes | Only real steps; cautious ("almost done" ≠ done); confirm first |
+| + Update | Home, Plan | **Gemma 4** reads "finished the research btw" → status changes | Only real steps; cautious ("almost done" ≠ done); confirm first |
 | Find a way forward | Home, Plan | Proposes the smallest fix, or "settle it together" | Finished steps untouched; dates in order; apply only on click |
-| + Coordinate | Home | Infers meet / project / update / help | Only routes; never claims an action |
+| + Coordinate | Home | **Gemma 4** infers meet / project / update / help | Only routes; never claims an action |
 | Catch-up, brief | API for Meetings | What you missed; what's worth discussing | No notes → no decisions; ids must exist |
 | Cockpit home | `/` | (none) | Next step, attention and dates computed by plain code |
 | Collaboration Dock | every page | (none) | Shows work state per person, never scores |
+
+## Two models: Gemma 4 and Gemini
+
+Fast, high-volume tasks (+ Coordinate, + Update) run on **Gemma 4**
+(`gemma-4-26b-a4b-it`, open weights) with automatic Gemini fallback;
+reading assignments, planning, replanning, catch-up and the brief run on
+**Gemini**. The split comes from an evaluation of the real services on both
+models ([model-evaluation.md](model-evaluation.md)): Gemma 4 matched Gemini
+exactly on the fast tasks (8/8, 4/4) at similar speed. Open weights also
+open a path to running it on SFSU infrastructure for privacy.
 
 ## Architecture
 
@@ -75,9 +85,12 @@ From the team's design philosophy:
 
 - `npm run lint`, `npm run build`, `tsc --noEmit` pass (apart from one
   existing lint error in `features/scheduling/AvailabilityGrid.tsx:96`).
-- **22 tests** (`tests/`, Node's runner, no dependencies): plan validation,
+- **27 tests** (`tests/`, Node's runner, no dependencies): plan validation,
   plan health and replanning safety, availability time math, Quick Meet
-  links, catch-up honesty rules, updates, cache and rate limit. Verified to
+  links, catch-up honesty rules, updates, cache, rate limit, and model
+  routing (Gemma first, Gemini fallback, no unsupported settings to Gemma).
+- **Model evaluation** (`tests/eval/ai-eval.ts`): 72 live calls across
+  Gemma 4 26B, Gemma 4 31B and Gemini. Verified to
   catch regressions by re-breaking a fix.
 - Live timings with `GEMINI_THINKING_LEVEL=low`: catch-up, brief,
   availability, updates, coordinate ~1–3 s; plan ~4–5 s; cached repeats ~30 ms.
@@ -110,3 +123,4 @@ with explicit consent → adaptive views per kind of work (film, lab, study).
 | #1 | All AI routes, Plan page, replanning, updates, availability | 1st |
 | #3 | Cockpit, + Coordinate, Quick Meet (+ Oscar's grid), reliability, tests, docs | 2nd |
 | #4 | Collaboration Dock, quiet header, `/` as home | 3rd |
+| #5 | Gemma 4 integration, model routing, evaluation | 4th |

@@ -9,6 +9,9 @@
  *   GEMINI_MODEL    optional, defaults to DEFAULT_GEMINI_MODEL
  *   GEMINI_THINKING_LEVEL  optional: minimal | low | medium | high, or "off" to
  *                   send no thinkingConfig. Defaults to "low" for fast structured output.
+ *   GEMMA_MODEL     optional, defaults to DEFAULT_GEMMA_MODEL (an open-weights
+ *                   Gemma 4 model served by the Gemini API) for "fast" tasks;
+ *                   "off" sends everything to Gemini.
  *   GEMINI_OFFLINE  optional: "1" makes every AI route use its labeled non-AI
  *                   fallback without calling Gemini (demo-day safety switch).
  */
@@ -17,7 +20,15 @@ import { cacheKey, createRateLimiter, createResponseCache, visitorId } from "./r
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 export const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
+/** Gemma 4 mixture-of-experts (26B total, ~4B active per token): fast and open-weights. */
+export const DEFAULT_GEMMA_MODEL = "gemma-4-26b-a4b-it";
 const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * A model with a fallback behind it gets one quick try: evaluation showed
+ * Gemma sometimes stalls for the full 30s on tasks it can't do, and Gemini
+ * answering after 10s beats anyone waiting 30s.
+ */
+const FALLBACK_TIMEOUT_MS = 10_000;
 /** Waits before retrying when Gemini says it is busy (HTTP 429/500/503). */
 const RETRY_DELAYS_MS = [700, 1800];
 const RETRYABLE_STATUS = new Set([429, 500, 503]);
@@ -64,6 +75,31 @@ export function getGeminiModel(): string {
   return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 }
 
+export function getGemmaModel(): string | undefined {
+  const value = process.env.GEMMA_MODEL?.trim();
+  return value === "off" ? undefined : value || DEFAULT_GEMMA_MODEL;
+}
+
+/**
+ * "fast": short, high-volume reading tasks (intent, availability, updates,
+ * meeting notes) run on Gemma 4 first and fall back to Gemini.
+ * "reasoning": reading whole assignments, planning and replanning use Gemini.
+ * AI_FORCE_MODEL pins a single model (used by the evaluation script).
+ */
+export type ModelTier = "fast" | "reasoning";
+
+export function modelsForTier(tier: ModelTier): string[] {
+  const forced = process.env.AI_FORCE_MODEL?.trim();
+  if (forced) return [forced];
+  const gemma = getGemmaModel();
+  return tier === "fast" && gemma ? [gemma, getGeminiModel()] : [getGeminiModel()];
+}
+
+/** Gemma rejects thinkingConfig.thinkingLevel (HTTP 400); only Gemini models get it. */
+function supportsThinkingLevel(model: string): boolean {
+  return /^gemini/i.test(model);
+}
+
 interface GenerateJsonOptions {
   systemInstruction: string;
   prompt: string;
@@ -72,6 +108,9 @@ interface GenerateJsonOptions {
   temperature?: number;
   /** Files sent alongside the prompt, e.g. an assignment PDF (base64 data). */
   attachments?: GeminiAttachment[];
+  /** Model to call; defaults to GEMINI_MODEL. */
+  model?: string;
+  timeoutMs?: number;
 }
 
 export interface GeminiAttachment {
@@ -94,14 +133,16 @@ export async function generateGeminiJson({
   responseSchema,
   temperature = 0.4,
   attachments = [],
+  model: requestedModel,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 }: GenerateJsonOptions): Promise<{ data: unknown; model: string }> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new GeminiError("missing_key", "GEMINI_API_KEY is not set on the server.");
   }
 
-  const model = getGeminiModel();
-  const thinkingConfig = getThinkingConfig();
+  const model = requestedModel ?? getGeminiModel();
+  const thinkingConfig = supportsThinkingLevel(model) ? getThinkingConfig() : undefined;
   const requestBody = JSON.stringify({
     systemInstruction: { parts: [{ text: `${systemInstruction}
 ${UNTRUSTED_CONTENT_RULE}` }] },
@@ -129,7 +170,7 @@ ${UNTRUSTED_CONTENT_RULE}` }] },
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: requestBody,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
         cache: "no-store",
       });
     } catch (error) {
@@ -194,6 +235,7 @@ export async function generateValidatedGeminiJson<T>({
   attachments,
   maxAttempts = 2,
   cacheable = false,
+  tier = "reasoning",
 }: {
   systemInstruction: string;
   buildPrompt: (previousIssues: string[]) => string;
@@ -208,45 +250,63 @@ export async function generateValidatedGeminiJson<T>({
    * ask for a fresh alternative (new plan, "see another option").
    */
   cacheable?: boolean;
+  /** Which models handle this task; see modelsForTier. */
+  tier?: ModelTier;
 }): Promise<GeminiValidationOutcome<T>> {
   if (!hasGeminiKey()) {
     return { ok: false, error: "missing_key", message: "Gemini is not configured on the server." };
   }
 
-  const key = cacheable
-    ? cacheKey([getGeminiModel(), systemInstruction, buildPrompt([]), responseSchema, temperature, attachments])
+  const models = modelsForTier(tier);
+  // AI_DISABLE_CACHE=1 is for evaluation runs, where every call must reach the model.
+  const key = cacheable && process.env.AI_DISABLE_CACHE !== "1"
+    ? cacheKey([models, systemInstruction, buildPrompt([]), responseSchema, temperature, attachments])
     : undefined;
   const cached = key ? responseCache.get(key) : undefined;
   if (cached) return { ok: true, value: cached.value as T, model: cached.model };
 
-  let issues: string[] = [];
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const { data, model } = await generateGeminiJson({
-        systemInstruction,
-        prompt: buildPrompt(issues),
-        responseSchema,
-        temperature,
-        attachments,
-      });
-      const result = validate(data);
-      if (result.ok) {
-        if (key) responseCache.set(key, { value: result.value, model });
-        return { ok: true, value: result.value, model };
+  let failure: GeminiValidationOutcome<T> = { ok: false, error: "gemini_invalid_output", message: "The AI response did not pass validation." };
+  for (const [index, model] of models.entries()) {
+    const hasFallback = index < models.length - 1;
+    const fallbackNote = hasFallback ? `; falling back to ${models[index + 1]}` : "";
+    let issues: string[] = [];
+    let requestFailed = false;
+    for (let attempt = 1; attempt <= (hasFallback ? 1 : maxAttempts); attempt++) {
+      try {
+        const { data } = await generateGeminiJson({
+          systemInstruction,
+          prompt: buildPrompt(issues),
+          responseSchema,
+          temperature,
+          attachments,
+          model,
+          timeoutMs: hasFallback ? FALLBACK_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+        });
+        const result = validate(data);
+        if (result.ok) {
+          if (key) responseCache.set(key, { value: result.value, model });
+          return { ok: true, value: result.value, model };
+        }
+        issues = result.issues;
+      } catch (error) {
+        if (error instanceof GeminiError && (error.code === "invalid_json" || error.code === "empty_response")) {
+          issues = [error.message];
+          continue;
+        }
+        if (!(error instanceof GeminiError)) console.error("[ai] unexpected error", error);
+        const message = error instanceof GeminiError ? error.message : "Unexpected error while calling the AI.";
+        failure = { ok: false, error: "gemini_request_failed", message };
+        console.warn(`[ai] ${model} request failed (${message})${fallbackNote}`);
+        requestFailed = true;
+        break;
       }
-      issues = result.issues;
-    } catch (error) {
-      if (error instanceof GeminiError && (error.code === "invalid_json" || error.code === "empty_response")) {
-        issues = [error.message];
-        continue;
-      }
-      if (!(error instanceof GeminiError)) console.error("[gemini] unexpected error", error);
-      const message = error instanceof GeminiError ? error.message : "Unexpected error while calling Gemini.";
-      return { ok: false, error: "gemini_request_failed", message };
+    }
+    if (!requestFailed) {
+      failure = { ok: false, error: "gemini_invalid_output", message: "The AI response did not pass validation.", issues };
+      console.warn(`[ai] ${model} output failed validation${fallbackNote}`);
     }
   }
-
-  return { ok: false, error: "gemini_invalid_output", message: "Gemini's response did not pass validation.", issues };
+  return failure;
 }
 
 /** Shared POST handler: parses the JSON body and returns the service's status and body. */
@@ -277,17 +337,47 @@ export async function handleJsonPost(
   return Response.json(result.body, { status: result.status });
 }
 
+export interface ModelHealth {
+  model: string;
+  role: "reasoning" | "fast";
+  reachable: boolean;
+  latencyMs?: number;
+  message?: string;
+}
+
 export interface GeminiHealth {
   status: "ready" | "offline_mode" | "missing_key" | "unreachable";
+  /** The reasoning model (Gemini); kept for compatibility. */
   model: string;
   thinkingLevel: string;
   latencyMs?: number;
   message: string;
+  /** Every configured model, e.g. Gemini for reasoning and Gemma 4 for fast tasks. */
+  models?: ModelHealth[];
+}
+
+async function probeModel(model: string, role: ModelHealth["role"], apiKey: string): Promise<ModelHealth> {
+  const started = Date.now();
+  try {
+    const response = await fetch(`${GEMINI_API_BASE}/${encodeURIComponent(model)}`, {
+      headers: { "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store",
+    });
+    const latencyMs = Date.now() - started;
+    if (response.ok) return { model, role, reachable: true, latencyMs };
+    const hint = response.status === 400 || response.status === 403 ? " Check the API key." : response.status === 404 ? " Check the model name." : "";
+    return { model, role, reachable: false, latencyMs, message: `HTTP ${response.status}.${hint}` };
+  } catch {
+    return { model, role, reachable: false, message: "Could not be reached. Check the internet connection." };
+  }
 }
 
 /**
- * Pre-demo check: confirms the key works and the model exists by fetching the
- * model's metadata (no generation, no cost). Never returns the key.
+ * Pre-demo check: confirms the key works and each configured model exists by
+ * fetching model metadata (no generation, no cost). Never returns the key.
+ * Ready means the reasoning model works; if Gemma is unreachable, fast tasks
+ * still work because they fall back to Gemini.
  */
 export async function checkGeminiHealth(): Promise<GeminiHealth> {
   const model = getGeminiModel();
@@ -299,18 +389,19 @@ export async function checkGeminiHealth(): Promise<GeminiHealth> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) return { ...base, status: "missing_key", message: "GEMINI_API_KEY is not set on the server." };
 
-  const started = Date.now();
-  try {
-    const response = await fetch(`${GEMINI_API_BASE}/${encodeURIComponent(model)}`, {
-      headers: { "x-goog-api-key": apiKey },
-      signal: AbortSignal.timeout(8000),
-      cache: "no-store",
-    });
-    const latencyMs = Date.now() - started;
-    if (response.ok) return { ...base, status: "ready", latencyMs, message: "Gemini is reachable and the key works." };
-    const hint = response.status === 400 || response.status === 403 ? " Check the API key." : response.status === 404 ? " Check GEMINI_MODEL." : "";
-    return { ...base, status: "unreachable", latencyMs, message: `Gemini returned HTTP ${response.status}.${hint}` };
-  } catch {
-    return { ...base, status: "unreachable", message: "Gemini could not be reached. Check the internet connection." };
+  const gemma = getGemmaModel();
+  const models = await Promise.all([
+    probeModel(model, "reasoning", apiKey),
+    ...(gemma ? [probeModel(gemma, "fast", apiKey)] : []),
+  ]);
+  const [reasoning, fast] = models;
+  if (!reasoning.reachable) {
+    return { ...base, status: "unreachable", latencyMs: reasoning.latencyMs, message: `Gemini: ${reasoning.message}`, models };
   }
+  const message = !gemma
+    ? "Gemini is reachable and the key works (Gemma is off)."
+    : fast?.reachable
+      ? "Gemini and Gemma 4 are reachable and the key works."
+      : `Gemini works; Gemma 4 is unavailable (${fast?.message}) so fast tasks will use Gemini.`;
+  return { ...base, status: "ready", latencyMs: reasoning.latencyMs, message, models };
 }

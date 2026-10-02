@@ -41,8 +41,20 @@ any major, from a cinema presentation to a software project.
 
 ## Built with
 
-Next.js (App Router) · TypeScript · Tailwind CSS · **Google Gemini**
-(`gemini-flash-latest` via the Gemini API, server-side only) · Google AI Studio
+Next.js (App Router) · TypeScript · Tailwind CSS · Google AI Studio
+
+**Models** (both through the Gemini API, server-side only):
+
+- **Gemma 4**: `gemma-4-26b-a4b-it` (open weights; [Gemma terms](https://ai.google.dev/gemma/terms)).
+  Handles + Coordinate (understanding what a student wants) and + Update
+  (turning "finished the research btw" into plan changes), with automatic
+  Gemini fallback. Integration: `features/ai/gemini.ts` (`modelsForTier`),
+  `features/ai/coordinate.ts`, `features/plan/update-service.ts`.
+- **Gemini**: `gemini-flash-latest`. Reads assignment PDFs, plans, replans,
+  writes catch-ups and meeting briefs.
+
+Why the split: [docs/model-evaluation.md](docs/model-evaluation.md). Gemma 4
+matched Gemini exactly on those tasks in our evaluation.
 
 ## Run it
 

@@ -1,7 +1,10 @@
 # AI layer (owner: Divij)
 
-Every Gemini call runs on the server through one small client
-(`gemini.ts`, plain `fetch`, no SDK). Gemini only **reads and proposes**;
+Every model call runs on the server through one small client
+(`gemini.ts`, plain `fetch`, no SDK). Two models, both via the Gemini API:
+**Gemma 4** (`gemma-4-26b-a4b-it`, open weights) for fast tasks and
+**Gemini** (`gemini-flash-latest`) for reasoning, routed by measured accuracy
+([docs/model-evaluation.md](../../docs/model-evaluation.md)). Gemini only **reads and proposes**;
 plain TypeScript **validates and decides**. Nothing an AI route returns is
 saved until a student confirms it in the UI.
 
@@ -12,7 +15,8 @@ Browser ──fetch──▶ /api/<route> (route.ts: 3 lines)
                                ├─ GEMINI_OFFLINE / mode:"demo" → labeled non-AI fallback
                                └─ generateValidatedGeminiJson
                                     ├─ cache hit? (opt-in) → return
-                                    ├─ Gemini (JSON schema, low thinking, retry on 429/5xx)
+                                    ├─ fast tier: Gemma 4 (one try, 10s) → else Gemini
+                                    ├─ JSON schema; thinking level only for Gemini; retry on 429/5xx
                                     ├─ validate in code → retry once with the issues
                                     └─ still invalid → typed error (UI offers retry/fallback)
 ```
@@ -23,13 +27,17 @@ Browser ──fetch──▶ /api/<route> (route.ts: 3 lines)
 
 ```
 GEMINI_API_KEY=...            # required for live AI (free key: aistudio.google.com)
-GEMINI_MODEL=...              # optional, default gemini-flash-latest
+GEMINI_MODEL=...              # optional, default gemini-flash-latest (reasoning)
+GEMMA_MODEL=...               # optional, default gemma-4-26b-a4b-it (fast tasks); "off" = Gemini only
 GEMINI_THINKING_LEVEL=...     # optional, default low (fast: ~1-4s); "off" to disable
 GEMINI_OFFLINE=1              # optional demo-day switch: every route uses its
                               # labeled non-AI fallback, no Gemini calls
 ```
 
 ## Routes
+
+`coordinate` and `progress-update` run on **Gemma 4** first (falling back to
+Gemini); every other route uses **Gemini**.
 
 | Route | Used by | What it does | Cached |
 |---|---|---|---|
@@ -40,7 +48,7 @@ GEMINI_OFFLINE=1              # optional demo-day switch: every route uses its
 | `POST /api/coordinate` | + Coordinate box | Infers intent: meet / project / update / help | yes |
 | `POST /api/catch-up` | Meetings (for Shreya) | "Here's what you missed": decided, changed, your part | yes |
 | `POST /api/meeting-brief` | Meetings (for Shreya) | "Worth discussing": only what needs the group live | yes |
-| `GET /api/health` | before a demo | `{status:"ready", latencyMs, model}`; never exposes the key | n/a |
+| `GET /api/health` | before a demo | `{status:"ready", models:[…]}` for Gemini and Gemma 4; never exposes the key | n/a |
 
 Types for each route live next to it (`*-types.ts`) and are safe to import
 from client components. Service files (`*.ts` without `-types`) are server-only.

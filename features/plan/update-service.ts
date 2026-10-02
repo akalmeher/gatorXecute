@@ -174,6 +174,8 @@ export async function interpretProgressUpdate(body: unknown): Promise<{ status: 
     buildPrompt: (issues) => buildPrompt(request, issues),
     responseSchema: RESPONSE_SCHEMA,
     validate: (data) => validateInterpretation(data, request.tasks),
+    // Evaluated: Gemma 4 26B-A4B is as accurate as Gemini here (tests/eval/ai-eval.ts); Gemini is the fallback.
+    tier: "fast",
     cacheable: true,
     temperature: 0.1,
   });

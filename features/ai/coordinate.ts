@@ -119,6 +119,8 @@ export async function coordinate(body: unknown): Promise<{ status: number; body:
         .join("\n\n"),
     responseSchema: RESPONSE_SCHEMA,
     validate: validateCoordinate,
+    // Evaluated: Gemma 4 26B-A4B is as accurate as Gemini here (tests/eval/ai-eval.ts); Gemini is the fallback.
+    tier: "fast",
     temperature: 0.1,
     cacheable: true,
   });

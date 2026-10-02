@@ -6,6 +6,7 @@ import { useProject } from "@/context/ProjectContext";
 import { useCurrentMember } from "@/features/identity/useCurrentMember";
 import type { ProgressInterpretation, ProgressUpdateRequest, ProgressUpdateResponse } from "./update-types";
 import { primaryButton, quietButton, secondaryButton } from "./PlanFocus";
+import { modelLabel } from "@/features/ai/model-label";
 
 /**
  * Feature Owner: Divij Anand
@@ -39,7 +40,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
   const [text, setText] = useState(defaultText);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ interpretation: ProgressInterpretation; source: "gemini" | "demo" } | null>(null);
+  const [result, setResult] = useState<{ interpretation: ProgressInterpretation; source: "gemini" | "demo"; model?: string } | null>(null);
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const inFlight = useRef<AbortController | null>(null);
 
@@ -70,7 +71,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
         signal: controller.signal,
       });
       const data = (await response.json()) as ProgressUpdateResponse;
-      if (data.ok) setResult({ interpretation: data.interpretation, source: data.source });
+      if (data.ok) setResult({ interpretation: data.interpretation, source: data.source, model: data.model });
       else setError(data.error === "bad_request" && data.issues?.[0] ? data.issues[0] : data.message);
     } catch {
       if (!controller.signal.aborted) setError("Couldn't reach the update service.");
@@ -99,7 +100,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
   };
 
   if (result) {
-    const { interpretation, source } = result;
+    const { interpretation, source, model } = result;
     return (
       <section aria-labelledby="update-heading" className="space-y-3 rounded-2xl bg-[#1A1D27] p-5">
         <h3 id="update-heading" className="font-heading text-lg font-semibold text-[#F5F2FA]">
@@ -134,7 +135,7 @@ export function PlanQuickUpdate({ project, startOpen = false, defaultText = "" }
               OK
             </button>
           )}
-          <span className="text-xs text-[#AAA5B4]/70">{source === "gemini" ? "Gemini" : "Not AI"} · nothing changes until you confirm</span>
+          <span className="text-xs text-[#AAA5B4]/70">{modelLabel(model, source)} · nothing changes until you confirm</span>
         </div>
       </section>
     );
