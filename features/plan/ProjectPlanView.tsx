@@ -8,6 +8,7 @@ import { PlanTimeline } from "./PlanTimeline";
 import { usePlanGeneration } from "./usePlanGeneration";
 import { toIsoDay, validatePlanTasks } from "./plan-validation";
 import { PlanRecovery } from "./PlanRecovery";
+import { PlanQuickUpdate } from "./PlanQuickUpdate";
 import { AssignmentInput } from "./AssignmentInput";
 import { FoundSummary } from "./FoundSummary";
 import type { PlanAssignment } from "./plan-types";
@@ -250,6 +251,8 @@ export function ProjectPlanView() {
           </div>
 
           <PlanRecovery project={project} replaceTasks={replaceTasks} />
+
+          <PlanQuickUpdate project={project} />
 
           <div className="space-y-5">
             <h3 className="font-heading text-xl font-semibold text-[#F5F2FA]">Here&apos;s what needs to happen</h3>
