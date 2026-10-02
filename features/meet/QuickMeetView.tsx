@@ -21,6 +21,7 @@ import {
   encodePoll,
   newPersonId,
 } from "./meet-link";
+import { WhereField } from "./WhereField";
 
 /**
  * Feature Owner: Divij Anand (built on Oscar Garcia's grid and best-time logic)
@@ -111,7 +112,7 @@ export function QuickMeetView() {
 
   // Keep the address bar in sync so the current link is always the one to share.
   useEffect(() => {
-    if (poll.people.length === 0 && !poll.title) return;
+    if (poll.people.length === 0 && !poll.title && !poll.where) return;
     const hash = encodePoll(poll);
     lastWrittenHash.current = hash;
     window.history.replaceState(null, "", `#${hash}`);
@@ -225,6 +226,11 @@ export function QuickMeetView() {
             ? `For ${poll.title}. Add when you're free and the best time shows up.`
             : "No account, no app. Add when you're free, send the link, and the best time shows up."}
         </p>
+        {!poll.chosen && (
+          <div className="pt-2">
+            <WhereField key={poll.where ?? ""} value={poll.where} onChange={(where) => update({ where })} />
+          </div>
+        )}
         {badLink && (
           <p role="alert" className="text-sm text-[#D5B45C]">
             That link looks broken, so this is a fresh start. Ask for the link again if you meant to join someone.
@@ -254,6 +260,7 @@ export function QuickMeetView() {
               <> {joinNames(chosenWhen.notComing.map((p) => firstName(p.name)))} can&apos;t make it.</>
             )}
           </p>
+          <WhereField key={poll.where ?? ""} value={poll.where} onChange={(where) => update({ where })} />
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={downloadIcs} className={primaryButton}>
               Add to my calendar

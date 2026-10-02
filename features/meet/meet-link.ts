@@ -10,6 +10,7 @@ import {
   timeToMinutes,
   type MeetingRecommendation,
 } from "@/features/scheduling/scheduling-utils";
+import { MAX_WHERE_CHARS, parseWhere, whereForCalendar } from "./meet-where";
 
 /**
  * Feature Owner: Divij Anand
@@ -20,6 +21,7 @@ import {
  * Format v2: base64url(JSON) with each person's grid packed as one hex bitmask
  * per day over Oscar's grid (DAYS, 9 AM–9 PM, 30-minute cells). A confirmed
  * slot carries an explicit date, IANA time zone and the attendee ids.
+ * "Where?" is optional free text (see meet-where.ts) and survives time changes.
  */
 
 export type Day = AvailabilityBlock["dayOfWeek"];
@@ -47,6 +49,8 @@ export interface MeetPoll {
   durationMinutes: number;
   people: MeetPerson[];
   chosen?: MeetChoice;
+  /** Where to meet, as typed: a place, a link, a phone number or an app name. */
+  where?: string;
 }
 
 export const MAX_PEOPLE = 12;
@@ -56,7 +60,7 @@ const HEX_PER_DAY = Math.ceil(TIME_SLOTS.length / 4);
 const VERSION = 2;
 
 type PackedChoice = [day: string, date: string, start: string, end: string, timeZone: string, attendees: string];
-type PackedPoll = { v: number; t: string; d: number; p: [string, string, string][]; c?: PackedChoice };
+type PackedPoll = { v: number; t: string; d: number; p: [string, string, string][]; c?: PackedChoice; w?: string };
 
 export function newPersonId(): string {
   return `p${Math.random().toString(36).slice(2, 8)}`;
@@ -208,6 +212,7 @@ export function encodePoll(poll: MeetPoll): string {
     d: poll.durationMinutes,
     p: poll.people.slice(0, MAX_PEOPLE).map((person) => [person.id, person.name.slice(0, 40), packCells(person.blocks)]),
     ...(c ? { c: [c.day, c.date, c.startTime, c.endTime, c.timeZone, c.attendeeIds.join(",")] } : {}),
+    ...(poll.where?.trim() ? { w: poll.where.trim().slice(0, MAX_WHERE_CHARS) } : {}),
   };
   return toBase64Url(JSON.stringify(packed));
 }
@@ -225,7 +230,8 @@ export function decodePoll(fragment: string): MeetPoll | null {
       .slice(0, MAX_PEOPLE)
       .filter((p): p is [string, string, string] => Array.isArray(p) && p.length === 3 && p.every((x) => typeof x === "string"))
       .map(([id, name, cells]) => ({ id: id.slice(0, 12), name: name.slice(0, 40), blocks: unpackCells(id, cells) }));
-    const poll: MeetPoll = { title: raw.t.slice(0, 80), durationMinutes: raw.d as number, people };
+    const where = typeof raw.w === "string" && raw.w.trim() ? raw.w.trim().slice(0, MAX_WHERE_CHARS) : undefined;
+    const poll: MeetPoll = { title: raw.t.slice(0, 80), durationMinutes: raw.d as number, people, ...(where ? { where } : {}) };
     const chosen = raw.c === undefined ? undefined : validateChoice(raw.c, poll);
     return chosen ? { ...poll, chosen } : poll;
   } catch {
@@ -278,7 +284,10 @@ export function buildIcs(poll: MeetPoll, choice: MeetChoice, now = new Date()): 
   const names = (ids: string[]) => poll.people.filter((p) => ids.includes(p.id)).map((p) => p.name);
   const missing = poll.people.filter((p) => !choice.attendeeIds.includes(p.id)).map((p) => p.name);
   const escape = (text: string) => text.replace(/[\\,;]/g, (m) => `\\${m}`).replace(/\n/g, "\\n");
+  const where = parseWhere(poll.where);
+  const place = where ? whereForCalendar(where) : null;
   const description = [
+    place?.url ? `Join: ${place.url}` : "",
     `With ${names(choice.attendeeIds).join(", ")}.`,
     missing.length > 0 ? `Can't make it: ${missing.join(", ")}.` : "",
     `Times chosen in ${choice.timeZone}. Found with gatorXecute Quick Meet.`,
@@ -295,6 +304,8 @@ export function buildIcs(poll: MeetPoll, choice: MeetChoice, now = new Date()): 
     `DTSTART:${icsUtc(zonedTimeToUtc(choice.date, choice.startTime, choice.timeZone))}`,
     `DTEND:${icsUtc(zonedTimeToUtc(choice.date, choice.endTime, choice.timeZone))}`,
     `SUMMARY:${escape(poll.title || "Meeting")}`,
+    ...(place?.location ? [`LOCATION:${escape(place.location)}`] : []),
+    ...(place?.url ? [`URL:${place.url}`] : []),
     `DESCRIPTION:${escape(description)}`,
     "END:VEVENT",
     "END:VCALENDAR",
