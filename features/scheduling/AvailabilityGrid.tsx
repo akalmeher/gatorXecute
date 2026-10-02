@@ -92,11 +92,13 @@ export function AvailabilityGrid({
      * When the selected teammate changes,
      * load that teammate's availability.
      */
-    const [previousMemberId, setPreviousMemberId] =
-        useState(memberId);
+    // Also reload when the blocks change from outside (e.g. Quick Meet's
+    // "Fill my times"), not only when the teammate changes.
+    const [previous, setPrevious] =
+        useState({ memberId, blocks });
 
-    if (previousMemberId !== memberId) {
-        setPreviousMemberId(memberId);
+    if (previous.memberId !== memberId || previous.blocks !== blocks) {
+        setPrevious({ memberId, blocks });
         setSelectedCells(blocksToCells(blocks));
     }
 
